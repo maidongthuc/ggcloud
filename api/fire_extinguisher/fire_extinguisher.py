@@ -200,7 +200,7 @@ async def fire_extinguisher(
         #     "powder": urls_image_fire_extinguigher_powder,
         #     "clock": urls_image_fire_extinguigher_clock,
         #     "tray": urls_image_fire_extinguigher_tray}
-        return results
+        return list_url_image
     except Exception as e:
         raise HTTPException(
             status_code=500, 
