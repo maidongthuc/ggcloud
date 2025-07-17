@@ -128,79 +128,79 @@ async def fire_extinguisher(
         # Upload multiple images => list url image
         list_url_image = await upload_multi_image(files=files, request=request, category=category)
         
-        objects="CO2 fire extinguisher (without a pressure gauge) | Powder fire extinguisher (with pressure gauge) | clock of fire extinguisher | Fire extinguisher tray"
-        max_workers = len(list_url_image)
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = []
+        # objects="CO2 fire extinguisher (without a pressure gauge) | Powder fire extinguisher (with pressure gauge) | clock of fire extinguisher | Fire extinguisher tray"
+        # max_workers = len(list_url_image)
+        # with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        #     futures = []
             
-            # Dùng vòng loop để submit task với index
-            for index, name in enumerate(list_url_image):
-                future = executor.submit(process_single_image, name, objects, index, request)
-                futures.append(future)
+        #     # Dùng vòng loop để submit task với index
+        #     for index, name in enumerate(list_url_image):
+        #         future = executor.submit(process_single_image, name, objects, index, request)
+        #         futures.append(future)
             
-            # Lấy kết quả theo thứ tự
-            results = []
-            for future in futures:
-                result = future.result()
-                results.append(result)
+        #     # Lấy kết quả theo thứ tự
+        #     results = []
+        #     for future in futures:
+        #         result = future.result()
+        #         results.append(result)
 
-        urls_image_fire_extinguigher_co2 = []
-        urls_image_fire_extinguigher_powder = []
-        urls_image_fire_extinguigher_clock = []
-        urls_image_fire_extinguigher_tray = []
+        # urls_image_fire_extinguigher_co2 = []
+        # urls_image_fire_extinguigher_powder = []
+        # urls_image_fire_extinguigher_clock = []
+        # urls_image_fire_extinguigher_tray = []
 
-        for item in results:
-            if item["status"] == "success" and item["detection_result"]:
-                # detection_result là một list, lấy URL từ mỗi detection
-                for detection in item["detection_result"]:
-                    if "url" in detection and "label" in detection:
-                        label = detection["label"]
-                        url = detection["url"]
+        # for item in results:
+        #     if item["status"] == "success" and item["detection_result"]:
+        #         # detection_result là một list, lấy URL từ mỗi detection
+        #         for detection in item["detection_result"]:
+        #             if "url" in detection and "label" in detection:
+        #                 label = detection["label"]
+        #                 url = detection["url"]
                         
-                        # Phân loại theo label
-                        if "CO2 fire extinguisher" in label:
-                            urls_image_fire_extinguigher_co2.append(url)
-                        elif "Powder fire extinguisher" in label:
-                            urls_image_fire_extinguigher_powder.append(url)
-                        elif "clock of fire extinguisher" in label:
-                            urls_image_fire_extinguigher_clock.append(url)
-                        elif "Fire extinguisher tray" in label:
-                            urls_image_fire_extinguigher_tray.append(url)
+        #                 # Phân loại theo label
+        #                 if "CO2 fire extinguisher" in label:
+        #                     urls_image_fire_extinguigher_co2.append(url)
+        #                 elif "Powder fire extinguisher" in label:
+        #                     urls_image_fire_extinguigher_powder.append(url)
+        #                 elif "clock of fire extinguisher" in label:
+        #                     urls_image_fire_extinguigher_clock.append(url)
+        #                 elif "Fire extinguisher tray" in label:
+        #                     urls_image_fire_extinguigher_tray.append(url)
 
-        urls_image_fire_extinguigher_clock = await select_image_clock_async(urls_image_fire_extinguigher_clock)
+        # urls_image_fire_extinguigher_clock = await select_image_clock_async(urls_image_fire_extinguigher_clock)
 
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            futures = []
+        # with ThreadPoolExecutor(max_workers=4) as executor:
+        #     futures = []
             
-            future = executor.submit(process_llm_threading, 
-                                     urls_image_fire_extinguigher_co2, 
-                                     "co2",
-                                     prompt_interface_fire_extinguisher)
-            futures.append(future)
+        #     future = executor.submit(process_llm_threading, 
+        #                              urls_image_fire_extinguigher_co2, 
+        #                              "co2",
+        #                              prompt_interface_fire_extinguisher)
+        #     futures.append(future)
 
-            future = executor.submit(process_llm_threading, 
-                                     urls_image_fire_extinguigher_powder, 
-                                     "powder",
-                                     prompt_interface_fire_extinguisher)
-            futures.append(future)
+        #     future = executor.submit(process_llm_threading, 
+        #                              urls_image_fire_extinguigher_powder, 
+        #                              "powder",
+        #                              prompt_interface_fire_extinguisher)
+        #     futures.append(future)
 
-            future = executor.submit(process_llm_threading, 
-                                     urls_image_fire_extinguigher_clock, 
-                                     "clock",
-                                     prompt_clock_fire_extinguisher)
-            futures.append(future)
+        #     future = executor.submit(process_llm_threading, 
+        #                              urls_image_fire_extinguigher_clock, 
+        #                              "clock",
+        #                              prompt_clock_fire_extinguisher)
+        #     futures.append(future)
             
-            # Lấy kết quả theo thứ tự
-            results = []
-            for future in futures:
-                result = future.result()
-                results.append(result)
+        #     # Lấy kết quả theo thứ tự
+        #     results = []
+        #     for future in futures:
+        #         result = future.result()
+        #         results.append(result)
         # return {
         #     "co2": urls_image_fire_extinguigher_co2,
         #     "powder": urls_image_fire_extinguigher_powder,
         #     "clock": urls_image_fire_extinguigher_clock,
         #     "tray": urls_image_fire_extinguigher_tray}
-        return results
+        return list_url_image
     except Exception as e:
         raise HTTPException(
             status_code=500, 
