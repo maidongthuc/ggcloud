@@ -127,22 +127,24 @@ async def fire_extinguisher(
     try:
         # Upload multiple images => list url image
         list_url_image = await upload_multi_image(files=files, request=request, category=category)
+
+
         
-        # objects="CO2 fire extinguisher (without a pressure gauge) | Powder fire extinguisher (with pressure gauge) | clock of fire extinguisher | Fire extinguisher tray"
-        # max_workers = len(list_url_image)
-        # with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        #     futures = []
+        objects="CO2 fire extinguisher (without a pressure gauge) | Powder fire extinguisher (with pressure gauge) | clock of fire extinguisher | Fire extinguisher tray"
+        max_workers = len(list_url_image)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = []
             
-        #     # Dùng vòng loop để submit task với index
-        #     for index, name in enumerate(list_url_image):
-        #         future = executor.submit(process_single_image, name, objects, index, request)
-        #         futures.append(future)
+            # Dùng vòng loop để submit task với index
+            for index, name in enumerate(list_url_image["urls"]):
+                future = executor.submit(process_single_image, name, objects, index, request)
+                futures.append(future)
             
-        #     # Lấy kết quả theo thứ tự
-        #     results = []
-        #     for future in futures:
-        #         result = future.result()
-        #         results.append(result)
+            # Lấy kết quả theo thứ tự
+            results = []
+            for future in futures:
+                result = future.result()
+                results.append(result)
 
         # urls_image_fire_extinguigher_co2 = []
         # urls_image_fire_extinguigher_powder = []
@@ -200,7 +202,7 @@ async def fire_extinguisher(
         #     "powder": urls_image_fire_extinguigher_powder,
         #     "clock": urls_image_fire_extinguigher_clock,
         #     "tray": urls_image_fire_extinguigher_tray}
-        return list_url_image
+        return results
     except Exception as e:
         raise HTTPException(
             status_code=500, 
