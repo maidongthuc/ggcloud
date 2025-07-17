@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-dotenv
+langchain-google-genai
+requests
+pillow
+pydantic
+python-multipart
+numpy
+opencv-python
+aiohttp
+asyncio
