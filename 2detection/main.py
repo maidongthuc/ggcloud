@@ -12,6 +12,15 @@ app = FastAPI(
     description="Professional AI Detection System",
     version="1.0.0"
 )
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # hoặc chỉ định domain frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Tạo API router
 api_router = APIRouter()
