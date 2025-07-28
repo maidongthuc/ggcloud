@@ -62,11 +62,15 @@ def process_llm_threading(urls, extinguisher_type, function_prompt):
             return {"type": extinguisher_type, "status": "no_images", "result": None}
         
         messages = function_prompt(urls)
-        print(messages)
-        ai_msg = llm_3_invoke_multi(urls, messages)
-        print(ai_msg)
-        print(type(ai_msg))
-        detections = parse_json_from_llm_response(ai_msg)
+        try:
+            print(messages)
+            ai_msg = llm_3_invoke_multi(urls, messages)
+            print(ai_msg)
+            print(type(ai_msg))
+            detections = parse_json_from_llm_response(ai_msg)
+        except Exception as e:
+            print("Error in process_llm_threading:", e)
+            raise
         
         return {
             "type": extinguisher_type,
