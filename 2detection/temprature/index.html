@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fire Extinguisher Analysis</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .preview { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .preview img { width: 100px; height: 100px; object-fit: cover; border: 1px solid #ccc; border-radius: 8px; }
+    .result { margin-top: 30px; }
+    .result img { width: 100px; margin: 5px; border: 1px solid #aaa; border-radius: 8px; }
+    .result-block { border: 1px solid #eee; padding: 10px; margin-bottom: 15px; border-radius: 8px; background: #fafafa; }
+    .result-block h3 { margin: 0 0 10px 0; font-size: 1.1em; }
+    input[type="file"] { width: 100%; margin-bottom: 10px; }
+    button { width: 100%; padding: 12px; font-size: 1em; border-radius: 8px; border: none; background: #1976d2; color: #fff; cursor: pointer; }
+    button:active { background: #1565c0; }
+    @media (max-width: 600px) {
+      body { margin: 8px; }
+      .preview img, .result img { width: 70px; height: 70px; }
+      .result-block { padding: 7px; }
+      button { padding: 10px; font-size: 0.95em; }
+    }
+  </style>
+</head>
+<body>
+  <h2 style="font-size:1.2em;">Upload Fire Extinguisher Images</h2>
+  <input type="file" id="fileInput" multiple accept="image/*">
+  <div class="preview" id="preview"></div>
+<button id="analyzeBtn" type="button">Phân tích</button>
+  <div class="result" id="result"></div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const resultDiv = document.getElementById('result');
+    let files = [];
+
+    fileInput.addEventListener('change', (e) => {
+      files = Array.from(e.target.files);
+      preview.innerHTML = '';
+      files.forEach(file => {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        preview.appendChild(img);
+      });
+    });
+
+analyzeBtn.onclick = async (event) => {
+  event.preventDefault(); // Ngăn reload trang
+  if (files.length === 0) return alert('Vui lòng chọn ảnh!');
+  const formData = new FormData();
+  files.forEach(file => formData.append('files', file));
+  resultDiv.innerHTML = 'Đang phân tích...';
+
+  try {
+    const res = await fetch('https://c37eee34a7aa.ngrok-free.app/api/v1/fire_extinguisher/fire_extinguisher/?category=6S', {
+      method: 'POST',
+      body: formData
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      resultDiv.innerHTML = 'Lỗi khi gọi API!<br>' + text;
+      return;
+    }
+    const data = await res.json();
+    renderResult(data);
+  } catch (err) {
+    resultDiv.innerHTML = 'Lỗi khi gọi API!<br>' + err;
+  }
+};
+
+function renderResult(data) {
+  resultDiv.innerHTML = '';
+  data.forEach(block => {
+    const div = document.createElement('div');
+    div.className = 'result-block';
+    div.innerHTML = `<h3>${block.type} - ${block.status}</h3>`;
+    showImagesFromResult(div, block.result);
+
+    // Hiển thị JSON kết quả
+    const jsonPre = document.createElement('pre');
+    jsonPre.style.background = '#f5f5f5';
+    jsonPre.style.padding = '8px';
+    jsonPre.style.borderRadius = '6px';
+    jsonPre.style.fontSize = '0.95em';
+    jsonPre.textContent = JSON.stringify(block.result, null, 2);
+    div.appendChild(jsonPre);
+
+    resultDiv.appendChild(div);
+  });
+}
+
+    function showImagesFromResult(div, result) {
+      if (!result) return;
+      if (Array.isArray(result)) {
+        result.forEach(item => {
+          if (item.url_image) addImage(div, item.url_image);
+        });
+      } else {
+        if (result.url_image) {
+          if (typeof result.url_image === 'string' && result.url_image.startsWith("['")) {
+            try {
+              JSON.parse(result.url_image.replace(/'/g, '"')).forEach(url => addImage(div, url));
+            } catch {}
+          } else {
+            addImage(div, result.url_image);
+          }
+        }
+        if (result.cleanliness && result.cleanliness.url_image) {
+          addImage(div, result.cleanliness.url_image);
+        }
+      }
+    }
+
+    function addImage(div, url) {
+      if (!url) return;
+      const img = document.createElement('img');
+      img.src = url.replace(/['"\[\]]/g, '').trim();
+      div.appendChild(img);
+    }
+  </script>
+</body>
+</html>
