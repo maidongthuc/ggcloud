@@ -41,13 +41,13 @@ def llm_3_invoke(image_url, prompt, width, height, image):
     resized_image = image.resize((1024, target_height), Image.Resampling.LANCZOS)
 
     response = client_llm3.models.generate_content(
-        model="gemini-2.5-pro",
+        model="gemini-2.5-flash",
         contents=[prompt, resized_image],
         config = types.GenerateContentConfig(
             temperature=0.5,
             safety_settings=safety_settings,
             thinking_config=types.ThinkingConfig(
-            thinking_budget= -1# Set thinking budget to 30 seconds
+            thinking_budget= 0# Set thinking budget to 30 seconds
             )
         )
     )
@@ -68,13 +68,13 @@ def llm_3_invoke_multi(image_urls, prompt):
     contents = [prompt] + images
 
     response = client_llm.models.generate_content(
-        model="gemini-2.5-pro",
+        model="gemini-2.5-flash",
         contents=contents,
         config=types.GenerateContentConfig(
             temperature=0.5,
             safety_settings=safety_settings,
             thinking_config=types.ThinkingConfig(
-                thinking_budget=-1
+                thinking_budget=0
             )
         )
     )
