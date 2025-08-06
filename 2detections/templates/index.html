@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Electric 6S App</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <!-- Nửa trên -->
+    <div class="top-section">
+      <!-- Bên trái: Camera -->
+      <div class="camera-section">
+        <div class="camera-view" id="camera">
+          <video id="video" autoplay playsinline muted></video>
+          <canvas id="canvas" style="display:none;"></canvas>
+        </div>
+        <div class="button-group">
+          <button id="btn-capture">📷 Chụp ảnh</button>
+          <button id="btn-analyze-6s">🧯 Phân tích bình chữa cháy</button>
+          <button id="btn-analyze-ec">🗄️ Phân tích tủ điện</button>
+          <button id="btn-check_list">Check list</button>
+          <button id="btn-reset">🔄 Reset</button>
+        </div>
+      </div>
+      <!-- Bên phải: Danh sách ảnh -->
+      <div class="image-preview-section">
+        <h3>Captured Images</h3>
+        <div id="loading">
+          <span>⏳ Đang phân tích ảnh...</span>
+        </div>
+        <div class="preview-container">
+          <img id="preview-image" src="" alt="Captured Images" />
+          <div class="preview-nav">
+            <button id="prev-btn" class="nav-btn">←</button>
+            <span id="image-counter">0 / 0</span>
+            <button id="next-btn" class="nav-btn">→</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Nửa dưới: Kết quả -->
+    <div id="checklist-form">
+      <div>
+        <label for="inspection-location">Inspection location:</label>
+        <input id="inspection-location" type="text" placeholder="Nhập vị trí kiểm tra...">
+      </div>
+      <div>
+        <label for="inspection-items">Inspection items &amp; details:</label>
+        <textarea id="inspection-items" rows="2" placeholder="Nhập hạng mục &amp; chi tiết kiểm tra..."></textarea>
+      </div>
+      <div>
+        <label for="inspection-methods">Inspection methods &amp; standards:</label>
+        <textarea id="inspection-methods" rows="2" placeholder="Nhập phương pháp &amp; tiêu chuẩn kiểm tra..."></textarea>
+      </div>
+      <button id="btn-analyze-checklist">Phân tích</button>
+    </div>
+    <div class="bottom-section">
+      <h3>Result</h3>
+      <div id="analysis-result" class="result-box">
+        <!-- Kết quả phân tích sẽ được hiển thị tại đây -->
+      </div>
+    </div>
+  </div>
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
+  <script src="/static/script.js"></script>
