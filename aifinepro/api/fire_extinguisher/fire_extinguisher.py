@@ -601,18 +601,6 @@ def run_model_clock(images, output_dir, request):
 def transform_data(data):
     transformed_results = []
     
-    # Dictionary để mapping tên tiếng Việt
-    vietnamese_names = {
-        "tray_condition": "Tình trạng khay",
-        "capacity": "Dung tích",
-        "cleanliness": "Độ sạch",
-        "body": "Thân bình",
-        "handle": "Tay cầm",
-        "safety_pin": "Chốt an toàn",
-        "nozzle": "Vòi phun",
-        "pressure_gauge": "Đồng hồ áp suất"
-    }
-    
     for item in data["fire_results"]:
         title = item["title"]
         processed_result = item["processed_result"]
@@ -620,7 +608,7 @@ def transform_data(data):
         # Create base structure
         transformed_item = {
             "title": title,
-            "images": processed_result.get("url", []),  # Changed from "url" to "images"
+            "url": processed_result.get("url", []),
             "details": []
         }
         
@@ -630,7 +618,6 @@ def transform_data(data):
             if "tray_condition" in processed_result:
                 transformed_item["details"].append({
                     "item": "tray_condition",
-                    "name": vietnamese_names["tray_condition"],
                     "status": processed_result["tray_condition"]["status"],
                     "reason": processed_result["tray_condition"]["reason"]
                 })
@@ -639,7 +626,6 @@ def transform_data(data):
             if "capacity" in processed_result:
                 transformed_item["details"].append({
                     "item": "capacity",
-                    "name": vietnamese_names["capacity"],
                     "status": processed_result["capacity"]["status"],
                     "reason": processed_result["capacity"]["reason"]
                 })
@@ -648,7 +634,6 @@ def transform_data(data):
             if "cleanliness" in processed_result:
                 transformed_item["details"].append({
                     "item": "cleanliness",
-                    "name": vietnamese_names["cleanliness"],
                     "status": processed_result["cleanliness"]["status"],
                     "reason": processed_result["cleanliness"]["reason"]
                 })
@@ -661,14 +646,13 @@ def transform_data(data):
                 if component in processed_result:
                     detail_item = {
                         "item": component,
-                        "name": vietnamese_names[component],
                         "status": processed_result[component]["status"],
                         "reason": processed_result[component]["reason"]
                     }
                     
-                    # Add images if exists (changed from "url" to "images")
+                    # Add URL if exists
                     if "url" in processed_result[component]:
-                        detail_item["images"] = processed_result[component]["url"]
+                        detail_item["url"] = processed_result[component]["url"]
                     
                     # Add object array for cleanliness if exists
                     if component == "cleanliness" and "object" in processed_result[component]:
@@ -680,10 +664,9 @@ def transform_data(data):
             if title == "dry_chemical_fire_extinguisher" and "clock_results" in data and data["clock_results"]:
                 pressure_gauge_detail = {
                     "item": "pressure_gauge",
-                    "name": vietnamese_names["pressure_gauge"],
                     "status": data["clock_results"]["status"],
                     "reason": data["clock_results"]["reason"],
-                    "images": data["clock_results"].get("url", [])  # Changed from "url" to "images"
+                    "url": data["clock_results"].get("url", [])
                 }
                 transformed_item["details"].append(pressure_gauge_detail)
         
@@ -692,6 +675,9 @@ def transform_data(data):
             transformed_item["id"] = processed_result["id"]
         
         transformed_results.append(transformed_item)
+    
+    # Note: Clock results are now integrated into dry_chemical_fire_extinguisher
+    # No separate clock item needed
     
     return transformed_results
 
@@ -734,11 +720,17 @@ def fire_extinguisher(
             "grouped_results": {k: len(v) for k, v in grouped_results.items()}  # Only return counts
         }
         transformed_data = transform_data(data)
-        return transformed_data
-
+        return {
+            'status': True,
+            'data': transformed_data,
+            'message': f'Fire extinguisher analysis completed'
+        }
+        
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error in fire extinguisher processing: {str(e)}"
-        )        
+        print(f"Error in electric_6s: {str(e)}")
+        return {
+            'status': False,
+            'data': {},
+            'message': f'Error in electric 6S processing: {str(e)}'
+        }
     

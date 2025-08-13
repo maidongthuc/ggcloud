@@ -185,3 +185,167 @@ ALWAYS return a JSON array, one object per image, in the following format (no ex
 }}
 ]
 '''
+
+
+prompt_fire_cabinet = f'''
+You are an AI inspector for fire extinguisher cabinets. When I provide images of a fire extinguisher cabinet, analyze and evaluate the following components:
+**Requirement:** All reasons must be answered in English, detailed and complete. You MUST answer in English.
+
+1. **Overview (Tổng quan):** Evaluate cleanliness and organization
+   - **Cleanliness:** Is it OK or NG? Check if the cabinet is clean, free from dust, dirt, stains, or debris. Describe specific locations and types of dirt if any.
+   - **Organization:** Is it OK or NG? Check if fire extinguishers and equipment are properly arranged, not tilted, properly positioned, and organized neatly.
+
+2. **Fire hose (Vòi bạc chữa cháy):** Is it OK or NG? Check the physical condition of the fire hose - look for cracks, tears, proper coiling, connection integrity, and overall condition.
+
+3. **Fire valve (Van mở chữa cháy):** Is it OK or NG? Check the fire valve condition - look for proper operation capability, no damage, corrosion, leaks, and accessibility.
+
+4. **Fire nozzle (Lăng phun chữa cháy):** Is it OK or NG? Check the fire nozzle condition - look for physical damage, blockages, proper attachment, and functionality.
+
+5. **Cabinet lock (Chốt khóa tủ):** Is it OK or NG? Check the cabinet lock mechanism - look for proper function, no damage, security, and ease of emergency access.
+
+If any component is not clearly visible (too small, blurry, occluded), return the status as NG and explain in detail which part is unclear and why.
+
+IMPORTANT: You must respond ONLY with valid JSON in this exact format. Do not include any explanatory text, markdown formatting, or code blocks. Just return the raw JSON object:
+{{
+"overview": {{
+    "cleanliness": {{
+        "status": "OK/NG",
+        "reason": "[Detailed description of cleanliness condition - specific locations of dirt/dust/stains if any, or state clean if no issues]"
+    }},
+    "organization": {{
+        "status": "OK/NG", 
+        "reason": "[Detailed description of how equipment is arranged - proper positioning, alignment, neatness]"
+    }}
+}},
+"fire_hose": {{
+    "status": "OK/NG",
+    "reason": "[Detailed assessment of hose condition - physical integrity, coiling, connections, any damage or wear]"
+}},
+"fire_valve": {{
+    "status": "OK/NG",
+    "reason": "[Detailed assessment of valve condition - operation capability, physical condition, accessibility]"
+}},
+"fire_nozzle": {{
+    "status": "OK/NG", 
+    "reason": "[Detailed assessment of nozzle condition - physical integrity, blockages, attachment, functionality]"
+}},
+"cabinet_lock": {{
+    "status": "OK/NG",
+    "reason": "[Detailed assessment of lock mechanism - functionality, condition, security, emergency access capability]"
+}},
+"id": 5
+}}
+'''
+
+def prompt_electric_6s(list_images):
+    # Hiển thị danh sách ảnh kèm số để tiện đọc, nhưng YÊU CẦU output phải dùng PATH
+    image_list_str = "\n".join([f"- Image #{i+1}: {path}" for i, path in enumerate(list_images)])
+    example_path =  "/path/to/example.jpg"
+
+    prompt = f'''
+You are given multiple images of electrical cabinets with their file paths:
+{image_list_str}
+
+Analyze the given images according to the **6S methodology**:
+- **Sort (Seiri)** – Check if unnecessary items are removed.
+- **Set in Order (Seiton)** – Check if components and wires are arranged logically and clearly.
+- **Shine (Seiso)** – Check if the cabinet is clean and free from dust or debris.
+- **Standardize (Seiketsu)** – Check if labeling, markings, and organization follow consistent standards.
+- **Sustain (Shitsuke)** – Check if good practices appear to be maintained over time.
+- **Safety** – Check for potential electrical hazards (exposed wires, loose connections, missing covers, incorrect grounding, etc.).
+
+**Output requirements (STRICT)**:
+- Return a **JSON array** with **exactly 6 objects in this fixed order**: Seiri, Seiton, Seiso, Seiketsu, Shitsuke, Safety.
+- Each object must contain exactly these keys:
+  - `"item"`: one of ["Seiri", "Seiton", "Seiso", "Seiketsu", "Shitsuke", "Safety"].
+  - `"status"`: "OK" or "NG".
+  - `"reason"`: a concise, specific explanation (1–3 sentences).
+  - `"images"`: an **array of file path strings** copied **verbatim** from the list above, **only for the images directly relevant** to that item.  
+    - Do not include unrelated images.  
+    - Include between **1 and 3 paths** that best illustrate the reasoning.  
+    - If no image is relevant, return an empty array `[]`.
+
+**Return only valid JSON** (no code fences, no extra text, no comments).
+
+Example shape (paths are illustrative only):
+[
+  {{
+    "item": "Seiri",
+    "status": "OK",
+    "reason": "No unnecessary items inside the cabinet.",
+    "images": ["{example_path}"]
+  }},
+  {{
+    "item": "Seiton",
+    "status": "NG",
+    "reason": "Wiring is untidy and not routed clearly.",
+    "images": ["{example_path}"]
+  }},
+  {{
+    "item": "Seiso",
+    "status": "OK",
+    "reason": "Cabinet appears clean and free from dust.",
+    "images": ["{example_path}"]
+  }},
+  {{
+    "item": "Seiketsu",
+    "status": "NG",
+    "reason": "No consistent labeling standard observed.",
+    "images": ["{example_path}"]
+  }},
+  {{
+    "item": "Shitsuke",
+    "status": "NG",
+    "reason": "Lack of sustained discipline in wiring and labeling.",
+    "images": ["{example_path}"]
+  }},
+  {{
+    "item": "Safety",
+    "status": "NG",
+    "reason": "Door left open, exposing live components.",
+    "images": ["{example_path}"]
+  }}
+]
+'''
+    return prompt
+
+
+def prompt_checklist(inspection_location, inspection_items_details, inspection_methods_standards):
+    prompt = f"""
+You are an equipment inspection engineer.
+
+I will provide you with:
+- Inspection location
+- Inspection items & details
+- Inspection methods & standards
+- Image(s)
+
+Your task:
+- **Requirement:** All reasons must be answered in English, detailed and complete. You MUST answer in English.
+- Evaluate the equipment based on the criteria and the provided images.
+- Output **ONLY** a valid JSON object (no extra text, no markdown, no code fences).
+
+Inspection location: {inspection_location}
+
+Inspection items & details:
+{inspection_items_details}
+
+Inspection methods & standards:
+{inspection_methods_standards}
+
+Evaluation format (STRICT):
+Return ONLY a JSON object with exactly these keys:
+{{
+  "item": "{inspection_location}",
+  "status": "OK" or "Not OK",
+  "reason": "[Provide a concise but comprehensive answer in English (2-3 sentences maximum). Focus on key findings and main issues. Reference the standards and describe what is visible in the images clearly and briefly.]"
+}}
+
+Rules:
+- The "status" must be "OK" or "Not OK".
+- The "reason" must be in English, concise (2-3 sentences), but comprehensive.
+- Focus on the most important findings and main issues only.
+- DO NOT include any image URLs or paths in the reason.
+- Output ONLY the JSON object. No explanations or additional text.
+"""
+    return prompt
