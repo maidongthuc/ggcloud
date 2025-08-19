@@ -4,185 +4,248 @@ from src.llm_gemini import llm_2, llm, llm_3_invoke, llm_3_invoke_multi, llm_3
 from src.utils import parse_json_from_llm_response, extract_object_to_criteria, extract_image_to_objects, to_snake_case
 from src.info_image import read_image, cut_bounding_boxes
 from src.prompt import prompt_electric_6s, preprocessing_prompt_detection_Tien
-from src.llm_gemini_2 import llm_gemini
-from src.prompt_2 import prompt_electric_6s
+from src.llm_gemini_2 import llm_gemini, llm_gemini_flex, llm_gemini_flex_no_thinkhing
+from src.prompt_2 import (prompt_electric_6s, 
+                          detection_object, 
+                          prompt_electric_seiri, 
+                          prompt_electric_seiton,
+                          prompt_electric_seiton_2,
+                          prompt_electric_seiso,
+                          prompt_electric_safety,
+                          prompt_electric_s4_s5)
 from models.request_models import Object_Detection_Tien    
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
+import os
+import time
+import uuid
 
+from PIL import Image, ImageDraw, ImageFont
 router = APIRouter()
 
-def add_base_url_to_images(data, request):
+def group_defective_objects_by_image(data):
     """
-    Function to add base URL to all image paths in the data
+    Group defective objects by image_id and combine labels into arrays
     """
-    if not request:
+    if not data.get("defective_objects"):
         return data
     
-    base_url = f"{request.url.scheme}://{request.url.netloc}"
+    # Group by image_id
+    image_groups = {}
+    for obj in data["defective_objects"]:
+        image_id = obj["image_id"]
+        label = obj["label"]
+        
+        if image_id not in image_groups:
+            image_groups[image_id] = []
+        
+        image_groups[image_id].append(label)
     
-    # Create a copy of data to avoid modifying original
-    updated_data = []
+    # Convert back to defective_objects format
+    new_defective_objects = []
+    for image_id, labels in image_groups.items():
+        new_defective_objects.append({
+            "image_id": image_id,
+            "label": labels
+        })
     
+    # Update data
+    new_data = data.copy()
+    new_data["defective_objects"] = new_defective_objects
+    
+    return new_data
+
+
+def draw_bounding_boxes(detections, url_path, category, request=None):
+    """
+    Draw bounding boxes from LLM detections with colors based on category
+    """
+    # Define colors for each 6S category
+    category_colors = {
+        "Seiri": "red",
+        "Seiton": "blue", 
+        "Seiso": "green",
+        "Seiketsu": "orange",
+        "Shitsuke": "purple",
+        "Safety": "yellow"
+    }
+    
+    # Get color for the category, default to red if not found
+    box_color = category_colors.get(category, "red")
+    
+    img = Image.open(url_path)
+    w, h = img.size
+    url_image = url_path
+    draw = ImageDraw.Draw(img)
+
+    line_width = max(2, min(w, h) // 200)  # Width scales with image size
+    font_size = max(12, min(w, h) // 50)   # Font size scales with image size
+    
+    # Try to load a font with the calculated size
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
+    except:
+        try:
+            # For Windows
+            font = ImageFont.truetype("arial.ttf", font_size)
+        except:
+            # Fallback to default font
+            font = ImageFont.load_default()
+    
+    for det in detections:
+        # LLM return normalized coordinates (0-1000), need to scale to actual pixel values
+        y1, x1, y2, x2 = det["box_2d"]
+        label = det["label"]
+        
+        # Scale normalized coordinates (0-1000) to actual image dimensions
+        y1 = int(y1 / 1000 * h)
+        x1 = int(x1 / 1000 * w)
+        y2 = int(y2 / 1000 * h)
+        x2 = int(x2 / 1000 * w)
+        print([x1, y1, x2, y2])
+        
+        text_offset = max(font_size + 5, 15)  # Dynamic offset based on font size
+        
+        # Calculate text position - ensure it's within image bounds
+        text_x = x1
+        text_y = y1 - text_offset
+        
+        # If text would go above image, place it below the box
+        if text_y < 0:
+            text_y = y2 + 5  # Place below the bounding box
+        
+        # If text would go beyond right edge, adjust x position
+        try:
+            text_bbox = draw.textbbox((text_x, text_y), label, font=font)
+            text_width = text_bbox[2] - text_bbox[0]
+            if text_x + text_width > w:
+                text_x = w - text_width - 5
+        except:
+            # Fallback if textbbox not available
+            text_x = min(text_x, w - len(label) * font_size // 2)
+
+        # Draw rectangle and text with category-specific color
+        draw.rectangle([x1, y1, x2, y2], outline=box_color, width=line_width)
+        draw.text((text_x, text_y), label, fill=box_color, font=font)
+
+    # Extract category from URL for directory structure
+    url_parts = url_image.split('/')
+    url_category = url_parts[-2] if len(url_parts) > 1 else category
+    
+    # Extract file extension from original URL
+    original_extension = os.path.splitext(url_image)[1]
+    if not original_extension:
+        original_extension = ".png"  # default extension
+    
+    # Create directory structure: static/images/results/{category}/
+    results_dir = os.path.join("static", "images", "results", url_category)
+    if not os.path.exists(results_dir):
+        os.makedirs(results_dir)
+    
+    # Generate filename with category and timestamp
+    timestamp = int(time.time())
+    unique_id = uuid.uuid4().hex[:8]
+    file_name = f"{category}_{timestamp}_{unique_id}{original_extension}"
+    
+    # Save image with bounding boxes
+    file_path = os.path.join(results_dir, file_name)
+    img.save(file_path)
+    
+    if request:
+        base_url = f"{request.url.scheme}://{request.url.netloc}"
+        image_url = f"{base_url}/static/images/results/{url_category}/{file_name}"
+    else:
+        # Fallback URL without request object
+        image_url = f"/static/images/results/{url_category}/{file_name}"
+    
+    return image_url
+
+def detection_electric_6s(data_ai, category, index, request=None):
+    prompt = detection_object(data_ai['label'])
+    response = llm_gemini_flex([data_ai['image_id']], index, prompt)
+    results = draw_bounding_boxes(response, data_ai['image_id'], category, request=request)
+    return { "result": results, 
+            "raw": 
+{            "label": data_ai['label'], 
+            "image_id": data_ai['image_id'] }
+            }
+
+def processing_electric_6s(list_url_image, index, prompt, request=None):
+    data_ai = llm_gemini_flex_no_thinkhing(list_url_image, index, prompt)
+    # return data_ai
+    processed_data = group_defective_objects_by_image(data_ai)
+    if (processed_data['status'] == "OK"):
+        if request:
+            base_url = f"{request.url.scheme}://{request.url.netloc}"
+            images = []
+            for url in list_url_image:
+                image_url = f"{base_url}/{url}"
+                images.append(image_url)
+            processed_data['images'] = {
+                "results": images,
+                "raw": {}
+            }
+        return processed_data
+    detection_responses = []
+    max_workers = len(processed_data['defective_objects'])
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        for item in processed_data['defective_objects']:
+            future = executor.submit(detection_electric_6s, item, processed_data['item'], index, request)
+            detection_responses.append(future)
+
+    # Collect all responses
+    structured_result = []
+    for future in as_completed(detection_responses):
+        response = future.result()
+        if isinstance(response, list):
+            structured_result.extend(response)
+        else:
+            structured_result.append(response)
+    processed_data['images'] = structured_result
+    return processed_data
+
+def processing_s4_s5(list_images, request=None):
+    """
+    Process S4 and S5 images with the appropriate prompt
+    """
+    if request:
+        base_url = f"{request.url.scheme}://{request.url.netloc}"
+        images = []
+        for url in list_images:
+            image_url = f"{base_url}/{url}"
+            images.append(image_url)
+
+    return   [{
+    "item": "Seiketsu",
+    "status": "OK",
+    "reason": "Seiketsu (Săn sóc/Chuẩn hóa) liên quan đến việc thiết lập các thực hành nhất quán về tổ chức, vệ sinh và kiểm soát trực quan trên nhiều hệ thống. Trong hình ảnh, các yếu tố nhìn thấy được có vẻ gọn gàng, tuy nhiên việc tuân thủ các quy trình chuẩn hóa tổng thể không thể được xác minh đầy đủ chỉ từ một bức ảnh, vì vậy giả định là đạt yêu cầu trong lần kiểm tra này.",
+    "images": {"result": images, "raw": {}}
+  },
+  {
+    "item": "Shitsuke",
+    "status": "OK",
+    "reason": "Shitsuke (Sẵn sàng/Kỷ luật) liên quan đến cam kết lâu dài, đào tạo liên tục và việc tuân thủ các nguyên tắc 6S của nhân sự. Khía cạnh duy trì tiêu chuẩn theo thời gian này mang tính hành vi và quy trình, nên không thể đánh giá trực tiếp từ một hình ảnh tĩnh. Do đó, nó được coi là OK trong lần kiểm tra bằng hình ảnh này.",
+    "images": {"result": images, "raw": {}}
+  }]
+def add_vietnamese_names(data):
+    # Dictionary mapping 6S items to Vietnamese names
+    item_name_mapping = {
+        "Seiri": "Sàng lọc",
+        "Seiton": "Sắp xếp", 
+        "Seiso": "Sạch sẽ",
+        "Seiketsu": "Săn sóc",
+        "Shitsuke": "Sẵn sàng",
+        "Safety": "An toàn"
+    }
+    
+    # Add name field to each item
     for item in data:
-        updated_item = item.copy()  # Shallow copy of the item
-        
-        # Update images with base URL
-        if "images" in updated_item and updated_item["images"]:
-            updated_images = []
-            for image_path in updated_item["images"]:
-                # Add base URL if not already present
-                if not image_path.startswith(('http://', 'https://')):
-                    full_url = f"{base_url}/{image_path}"
-                else:
-                    full_url = image_path
-                updated_images.append(full_url)
-            updated_item["images"] = updated_images
-        
-        updated_data.append(updated_item)
+        if "item" in item:
+            item_key = item["item"]
+            item["name"] = item_name_mapping.get(item_key, item_key)
     
-    return updated_data
-
-# @router.post("/electric_6s/")
-# def electric_6s(
-#     files: list[UploadFile] = File(...),
-#     request: Request = None, 
-#     category: str = "6S"
-# ):
-#     """
-#     Endpoint to upload an image for fire extinguisher interface
-#     """
-#     try:
-#         # Upload multiple images => list url image
-#     #     list_url_image = upload_multi_image(files=files, request=request, category=category)
-#     #     message = prompt_electric_6s(list_url_image['urls'])
-#     #     ai_msg = llm_3.invoke(message)
-#     #     print("LLM content:", ai_msg.content)  # Debugging line to check LLM response
-#     #     data_json = parse_json_from_llm_response(ai_msg.content)
-#     #     object_to_criteria = extract_object_to_criteria(data_json["data"])
-#     #     image_to_objects = extract_image_to_objects(data_json["data"])
-#     #     results = {
-#     #     "success": True,
-#     #     "data": data_json["data"],
-#     #     "mapping": {
-#     #         "object_to_criteria": object_to_criteria,
-#     #         "image_to_objects": image_to_objects
-#     #     }
-#     # }
-#     #     data = results["data"]
-#     #     mapping = results["mapping"]
-#     #     image_to_objects = mapping["image_to_objects"]
-#     #     object_to_criteria = mapping["object_to_criteria"]
-
-#         data = {
-#   "success": True,
-#   "data": [
-#     {
-#       "Criterion": "Seiri - Sort",
-#       "Result": "NG",
-#       "Error details": [
-#         {
-#           "Reason": "Debris present on the bottom surface of the cabinet.",
-#           "Error object": "Small piece of paper and white particles (debris) on the bottom surface",
-#           "Image URL": "http://0.0.0.0:8080/static/images/raw/6S/6S_raw_1753781062_0.jpg"
-#         }
-#       ]
-#     },
-#     {
-#       "Criterion": "Seiton - Set in order",
-#       "Result": "NG",
-#       "Error details": [
-#         {
-#           "Reason": "Wires are loose and untidy at the bottom right.",
-#           "Error object": "Loose wires at the bottom right",
-#           "Image URL": "http://0.0.0.0:8080/static/images/raw/6S/6S_raw_1753781062_0.jpg"
-#         },
-#         {
-#           "Reason": "Wires are not labeled.",
-#           "Error object": "Unlabeled wires (e.g., blue, red, yellow, black wires at bottom left, black/yellow wire at right)",
-#           "Image URL": "http://0.0.0.0:8080/static/images/raw/6S/6S_raw_1753781062_0.jpg"
-#         },
-#         {
-#           "Reason": "The protective plastic cover is incomplete, exposing live parts.",
-#           "Error object": "Incomplete plastic cover exposing live terminals on the top right busbar",
-#           "Image URL": "http://0.0.0.0:8080/static/images/raw/6S/6S_raw_1753781062_0.jpg"
-#         }
-#       ]
-#     },
-#     {
-#       "Criterion": "Seiso - Shine",
-#       "Result": "NG",
-#       "Error details": [
-#         {
-#           "Reason": "Dust and debris are present on the cabinet floor.",
-#           "Error object": "Dust and debris on the bottom surface of the cabinet",
-#           "Image URL": "http://0.0.0.0:8080/static/images/raw/6S/6S_raw_1753781062_0.jpg"
-#         }
-#       ]
-#     },
-#     {
-#       "Criterion": "Safety",
-#       "Result": "NG",
-#       "Error details": [
-#         {
-#           "Reason": "Live terminals are exposed due to an incomplete protective cover.",
-#           "Error object": "Exposed live terminals on the top right busbar",
-#           "Image URL": "http://0.0.0.0:8080/static/images/raw/6S/6S_raw_1753781062_0.jpg"
-#         }
-#       ]
-#     },
-#     {
-#       "Criterion": "Seiketsu - Standardize",
-#       "Result": "OK"
-#     },
-#     {
-#       "Criterion": "Shitsuke - Sustain",
-#       "Result": "OK"
-#     },
-#     {
-#       "Criterion": "Summary",
-#       "Result": "NG",
-#       "Reason": "Multiple 6S criteria (Seiri, Seiton, Seiso, Safety) are rated NG."
-#     }
-#   ],
-#   "mapping": {
-#     "object_to_criteria": {
-#       "Small piece of paper and white particles (debris) on the bottom surface": "Seiri - Sort",
-#       "Loose wires at the bottom right": "Seiton - Set in order",
-#       "Unlabeled wires (e.g., blue, red, yellow, black wires at bottom left, black/yellow wire at right)": "Seiton - Set in order",
-#       "Incomplete plastic cover exposing live terminals on the top right busbar": "Seiton - Set in order",
-#       "Dust and debris on the bottom surface of the cabinet": "Seiso - Shine",
-#       "Exposed live terminals on the top right busbar": "Safety"
-#     },
-#     "image_to_objects": {
-#       "http://0.0.0.0:8080/static/images/raw/6S/6S_raw_1753781062_0.jpg": [
-#         "Small piece of paper and white particles (debris) on the bottom surface",
-#         "Loose wires at the bottom right",
-#         "Unlabeled wires (e.g., blue, red, yellow, black wires at bottom left, black/yellow wire at right)",
-#         "Incomplete plastic cover exposing live terminals on the top right busbar",
-#         "Dust and debris on the bottom surface of the cabinet",
-#         "Exposed live terminals on the top right busbar"
-#       ]
-#     }
-#   }
-# }
-#         object_to_criteria = data['mapping']['object_to_criteria']
-#         for url, objects in data['mapping']['image_to_objects'].items():
-#             obj_payload = Object_Detection_Tien(
-#                 objects=objects,
-#                 url_image=url,
-#                 object_to_criteria=object_to_criteria
-#             )
-        
-#         # draw_result = draw_object_detection_Tien(obj_payload, request)
-#         return 1
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=500,
-#             detail=f"Error in fire extinguisher processing: {str(e)}"
-#         )
-
+    return data
 
 @router.post("/electric_6s/")
 def electric_6s(
@@ -195,15 +258,39 @@ def electric_6s(
     """
     try:
         list_url_image = upload_multi_image_2(files=files, request=request, category=category)
-        prompt = prompt_electric_6s(list_url_image['urls'])
-        data_ai = llm_gemini(list_url_image['urls'], prompt)
-        result = add_base_url_to_images(data_ai, request)
+
+        detection_responses = []
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            future = executor.submit(processing_electric_6s, list_url_image['urls'], 1, prompt_electric_seiri(list_url_image['urls']), request)
+            detection_responses.append(future)
+            future = executor.submit(processing_electric_6s, list_url_image['urls'], 2, prompt_electric_seiton_2(list_url_image['urls']), request)
+            detection_responses.append(future)
+            future = executor.submit(processing_electric_6s, list_url_image['urls'], 3, prompt_electric_seiso(list_url_image['urls']), request)
+            detection_responses.append(future)
+            future = executor.submit(processing_electric_6s, list_url_image['urls'], 4, prompt_electric_safety(list_url_image['urls']), request)
+            detection_responses.append(future)
+            future = executor.submit(processing_s4_s5, list_url_image['urls'], request)
+            detection_responses.append(future)
+
+        # Collect all responses
+        structured_result = []
+        for future in as_completed(detection_responses):
+            response = future.result()
+            if isinstance(response, list):
+                structured_result.extend(response)
+            else:
+                structured_result.append(response)
+
+        cleaned_data = []
+        for item in structured_result:
+            cleaned_item = {key: value for key, value in item.items() if key != 'defective_objects'}
+            cleaned_data.append(cleaned_item)
+        data = add_vietnamese_names(cleaned_data)
         return {
             'status': True,
-            'data': result,
-            'message': f'6S analysis completed'
+            'data': data,
+            'message': 'Electric 6S processing completed successfully!',
         }
-        
     except Exception as e:
         print(f"Error in electric_6s: {str(e)}")
         return {

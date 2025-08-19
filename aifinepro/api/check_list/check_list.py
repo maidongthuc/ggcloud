@@ -58,7 +58,7 @@ def check_list(
         return {
             'status': True,
             'data': result,
-            'message': f'Checklist analysis completed'
+            'message': f'Checklist analysis completed!'
         }
         
     except Exception as e:

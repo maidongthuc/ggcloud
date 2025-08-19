@@ -21,7 +21,15 @@ def prompt_classification_2(list_images):
     )
     return PROMPT
 
-
+def detection_object(list_label):
+    # Wrap each object with **object**
+    wrapped_objects = [f"**{label}**" for label in list_label]
+    objects = ", ".join(wrapped_objects)
+    prompt = f"""- Detect the {objects} in the image.  
+- Output the result as a **JSON list** of bounding boxes, where each entry contains:
+  - `box_2d`: [y1, x1, y2, x2]
+  - `label`: object name in `snake_case` format."""
+    return prompt
 # def prompt_cut_all_fire_extinguisher(url_image):
 #     prompt = "If image is overview photo of the fire extinguisher:" \
 # " - Detect the *dry chemical fire extinguisher*, *co2 fire extinguisher* and  *fire extinguisher tray* in the image. Output a JSON list of bounding boxes where each entry contains the 2D bounding box in the key \"box_2d\", and the text label in the key \"label\". Use descriptive labels in snake_case format." \
@@ -238,75 +246,469 @@ IMPORTANT: You must respond ONLY with valid JSON in this exact format. Do not in
 '''
 
 def prompt_electric_6s(list_images):
-    # Hiển thị danh sách ảnh kèm số để tiện đọc, nhưng YÊU CẦU output phải dùng PATH
-    image_list_str = "\n".join([f"- Image #{i+1}: {path}" for i, path in enumerate(list_images)])
-    example_path =  "/path/to/example.jpg"
+    # Hiển thị danh sách ảnh kèm số để tiện đọc, NHƯNG yêu cầu output phải dùng đúng PATH
+    image_list_str = "\n".join([f"- Image #{i+1}: {path}" for i, path in enumerate(list_images, start=1)])
 
-    prompt = f'''
-You are given multiple images of electrical cabinets with their file paths:
+    prompt = f"""Bạn là một **chuyên gia kiểm tra an toàn điện** chuyên về **phương pháp 6S** cho tủ điện công nghiệp.  
+Hãy phân tích các hình ảnh được cung cấp và đánh giá sự tuân thủ theo các điều kiện tiêu chuẩn 6S.  
+Bạn được cung cấp nhiều hình ảnh tủ điện với đường dẫn tệp như sau:
+
 {image_list_str}
 
-Analyze the given images according to the **6S methodology**:
-- **Sort (Seiri)** – Check if unnecessary items are removed.
-- **Set in Order (Seiton)** – Check if components and wires are arranged logically and clearly.
-- **Shine (Seiso)** – Check if the cabinet is clean and free from dust or debris.
-- **Standardize (Seiketsu)** – Check if labeling, markings, and organization follow consistent standards.
-- **Sustain (Shitsuke)** – Check if good practices appear to be maintained over time.
-- **Safety** – Check for potential electrical hazards (exposed wires, loose connections, missing covers, incorrect grounding, etc.).
+---
 
-**Output requirements (STRICT)**:
-- Return a **JSON array** with **exactly 6 objects in this fixed order**: Seiri, Seiton, Seiso, Seiketsu, Shitsuke, Safety.
-- Each object must contain exactly these keys:
-  - `"item"`: one of ["Seiri", "Seiton", "Seiso", "Seiketsu", "Shitsuke", "Safety"].
-  - `"status"`: "OK" or "NG".
-  - `"reason"`: a concise, specific explanation (1–3 sentences).
-  - `"images"`: an **array of file path strings** copied **verbatim** from the list above, **only for the images directly relevant** to that item.  
-    - Do not include unrelated images.  
-    - Include between **1 and 3 paths** that best illustrate the reasoning.  
-    - If no image is relevant, return an empty array `[]`.
+## Nội dung cần kiểm tra
 
-**Return only valid JSON** (no code fences, no extra text, no comments).
+### 1) Seiri (Sàng lọc)
+-Xem xét và loại bỏ các vật dụng thừa trong tủ điện, như dây dẫn cũ, linh kiện hỏng hoặc công cụ không cần thiết.
 
-Example shape (paths are illustrative only):
+### 2) Seiton (Sắp xếp)
+- Sắp xếp những thứ cần thiết theo thứ tự ngăn nắp và có biểu thị dễ thấy, dễ lấy trong tủ điện
+- Sắp xếp đúng vật vào đúng chỗ trong tủ điện
+- Sắp xếp vị trí các công cụ,… sao cho tiến trình làm việc trôi chảy trong tủ điện
+
+### 3) Seiso (Sạch sẽ)
+- Giữ gìn nơi làm việc, thiết bị dụng cụ sạch sẽ trong tủ điện
+- Hạn chế nguồn gây dơ bẩn, bừa bãi trong tủ điện
+- Lau chùi, quét dọn có ý thức trong tủ điện
+
+### 4) Seiketsu (Săn sóc)
+- Duy trì thành quả đạt được
+- Thực hiện 3S mọi lúc mọi nơi
+- Duy trì nguyên tắc 3 không:
+  • Không có vật vô dụng
+  • Không bừa bãi
+  • Không dơ bẩn
+
+### 5) Shitsuke (Sẵn sàng)
+- Tự giác thực hiện và duy trì 3S
+- Hướng dẫn người chưa biết về 5S thực hiện 5S
+
+### 6) Safety (An toàn)
+- Không có cách điện bị hư hỏng, nứt hoặc cháy chảy.  
+- Không có mối nối lỏng, đầu hở hoặc hàn kém.  
+- Tất cả nắp che, tấm chắn và lớp bảo vệ được lắp đặt đầy đủ.  
+- Tiếp địa đúng và hoạt động tốt.  
+---
+
+## Output format (JSON rules)
+- Return exactly **6 objects** in this order: "Seiri", "Seiton", "Seiso", "Seiketsu", "Shitsuke", "Safety".
+- Each object must have:
+  - "item": one of the fixed values above.
+  - "status": "OK" or "NG".
+  - "reason": a **detailed** explanation (write 3–8 sentences) explicitly citing visible evidence and implications for safety/operations. Avoid generic phrases.
+  - "defective_objects": **only if** status is "NG" → an array of objects; otherwise [].
+
+### Defective object schema (no bounding boxes, minimal fields)
+For each defective object, include **only**:
+- "image_id": the **exact image path** as listed in the input.
+- "label": object name (see Controlled Vocabulary below).  
+No other fields are allowed. **Do not** output coordinates, polygons, masks, or any bbox fields.
+
+**Return valid JSON only (no comments, no trailing commas, no markdown).**
+**Use ASCII quotes only.**
+
+---
+
+## Controlled Vocabulary (labels)
+Use these when applicable; otherwise create clear labels:
+- "tangled cable bundle"
+- "excess spare parts inside cabinet"
+- "unrelated object inside cabinet"
+- "debris inside cabinet"
+- "missing label on breaker"
+- "worn or unreadable label"
+- "incorrect wire color code"
+- "exposed conductor"
+- "damaged insulation"
+- "broken cable gland"
+- "loose terminal connection"
+- "missing cover or guard"
+- "blocked_breaker access"
+- "corrosion on terminal"
+- "moisture sign inside cabinet"
+- "overheating discoloration"
+
+---
+
+## Example Output
 [
   {{
     "item": "Seiri",
     "status": "OK",
-    "reason": "No unnecessary items inside the cabinet.",
-    "images": ["{example_path}"]
+    "reason": "The cabinet interior appears dedicated to operational components with no unrelated tools, packing materials, or expired parts. Spare items are not stored inside the enclosure, reducing clutter and improving airflow. Shelves and DIN rails are populated only with necessary devices for control and protection, indicating disciplined inventory control. No bundles of unused wires or coils suggesting temporary storage are visible.",
+    "defective_objects": []
   }},
   {{
     "item": "Seiton",
     "status": "NG",
-    "reason": "Wiring is untidy and not routed clearly.",
-    "images": ["{example_path}"]
+    "reason": "Cable routing shows several uncontrolled loops that cross device fronts, suggesting the absence of ties or guides. The layout does not consistently follow power flow or functional grouping, making tracing circuits difficult. Access to certain breaker toggles appears partially obstructed by cable bundles, which can delay emergency isolation. This arrangement increases the chance of accidental actuation and complicates troubleshooting, violating good order principles.",
+    "defective_objects": [
+      {{
+        "image_id": "/path/to/example.jpg",
+        "label": "tangled_cable_bundle"
+      }}
+    ]
   }},
   {{
     "item": "Seiso",
     "status": "OK",
-    "reason": "Cabinet appears clean and free from dust.",
-    "images": ["{example_path}"]
+    "reason": "Surfaces and device faces appear free of dust and oil residue, indicating recent cleaning. No loose screws, clipped wire ends, or paper scraps are visible on the cabinet floor. Metallic parts show a consistent finish without staining, and ventilation cutouts look unobstructed. The overall cleanliness reduces the risk of thermal buildup and tracking across contaminants.",
+    "defective_objects": []
   }},
   {{
     "item": "Seiketsu",
     "status": "NG",
-    "reason": "No consistent labeling standard observed.",
-    "images": ["{example_path}"]
+    "reason": "Not all protective devices carry durable identification labels that match a documented diagram. Several positions display blank spaces where circuit IDs should be placed, which hinders rapid isolation and re-energization. Inconsistent label materials and fonts suggest a lack of standardized labeling practice. This inconsistency increases the risk of human error during maintenance and emergency operations.",
+    "defective_objects": [
+      {{
+        "image_id": "/path/to/example2.jpg",
+        "label": "missing_label_on_breaker"
+      }}
+    ]
   }},
   {{
     "item": "Shitsuke",
-    "status": "NG",
-    "reason": "Lack of sustained discipline in wiring and labeling.",
-    "images": ["{example_path}"]
+    "status": "OK",
+    "reason": "Cable dressing and terminal torque marks appear consistent, implying adherence to routine checks. No leftover consumables or temporary markers remain, suggesting work areas were restored after interventions. The uniformity of labeling where present indicates ongoing discipline. Visual cues collectively imply sustained housekeeping and periodic verification.",
+    "defective_objects": []
   }},
   {{
     "item": "Safety",
     "status": "NG",
-    "reason": "Door left open, exposing live components.",
-    "images": ["{example_path}"]
+    "reason": "A conductor appears exposed at a terminal interface, with insulation stripped too far back from the clamping point. The visible metallic strands present accidental contact and arcing risks, especially under vibration. Missing heat-shrink or strain relief indicates inadequate termination practice. Such defects can lead to localized heating, oxidation, and eventual equipment failure or shock hazards.",
+    "defective_objects": [
+      {{
+        "image_id": "/path/to/example2.jpg",
+        "label": "exposed_conductor"
+      }}
+    ]
   }}
 ]
-'''
+"""
+    return prompt
+
+def prompt_electric_seiton(list_images):
+    # Display image list with numbering, but REQUIRE that output must use the exact PATH
+    image_list_str = "\n".join([f"- Image no {i+1}: {path}" for i, path in enumerate(list_images, start=1)])
+
+    prompt = f"""You are an **expert electrical safety inspector** specializing in the **6S methodology** for industrial electrical cabinets.  
+Analyze the provided images and **evaluate only under the Seiton (Set in Order) condition**.  
+You are given multiple images of electrical cabinets with their file paths:
+
+{image_list_str}
+---
+## Inspection criteria (Seiton – Set in Order)
+- **Only evaluate necessary equipment/components for the electrical cabinet** (devices, components, cables, related accessories).  
+  → **Ignore** unrelated items such as water bottles, pliers/hammers for personal use, gloves, papers, tape… (these belong to **Seiri – Sort**, not Seiton).
+- Components, devices, and wiring must be **arranged neatly and logically**, ensuring safe and convenient operation.  
+- Cables must be routed through **trays/conduits/ducts** or **tied neatly with cable ties**; avoid tangling or overlapping.  
+- Accessories/components must be **placed in their designated positions**, facilitating operation and maintenance.  
+- There must be **clear position markings/labels/indicators** to ensure easy identification and traceability.  
+
+*Note:* If an **unrelated object** (e.g., a water bottle) is found inside/on the cabinet, you should **briefly mention in the "reason" that this is a Seiri issue**, but **do not list it in the `defective_objects` of Seiton**.
+---
+
+## Output format (JSON rules)
+- Return exactly **1 object** with:
+  - "item": always "Seiton".
+  - "status": "OK" or "NG".
+  - "reason": **clear and concise explanation (2–4 sentences)**, describing evidence in the image and its impact on safety/operation.  
+  - "defective_objects": **only when status = "NG"** → an array of objects describing **Seiton-related arrangement defects of necessary items**; otherwise, return [].
+
+### Defective object schema (Seiton-only)
+Each object must include:
+- "image_id": exact image path from input.
+- "label": specific defect name (e.g., "tangled cable bundle", ...).  
+
+---
+
+## Example Output
+{{
+  "item": "Seiton",
+  "status": "NG",
+  "reason": "Several cable bundles are left untied and not routed in trays, which obstructs operation and makes maintenance difficult.",
+  "defective_objects": [
+    {{
+      "image_id": "/path/to/cabinet_with_tangled_cables.jpg",
+      "label": "tangled cable bundle"
+    }}
+  ]
+}}
+"""
+    return prompt
+
+
+def prompt_electric_seiton_2(list_images):
+    # Display image list with numbering, but REQUIRE that output must use the exact PATH
+    image_list_str = "\n".join([f"- Image no {i+1}: {path}" for i, path in enumerate(list_images, start=1)])
+
+    prompt = f"""You are an **expert electrical safety inspector** specializing in the **6S methodology** for industrial electrical cabinets.  
+Analyze the provided images and **evaluate only under the Seiton (Set in Order) condition**.  
+You are given multiple images of electrical cabinets with their file paths:
+
+{image_list_str}
+
+---
+## Inspection criteria (Seiton – Set in Order)
+- **Only check if there are tangled cables inside the cabinet.**  
+- If tangled cables are found → status = "NG".  
+- If no tangled cables are found → status = "OK".  
+
+---
+## Output format (JSON rules)
+- Return exactly **1 object** with:
+  - "item": always "Seiton".
+  - "status": "OK" or "NG".
+  - "reason": short explanation (2–3 sentences) describing the evidence in the image and its impact.  
+  - "defective_objects": 
+    - If status = "NG": array with at least one object describing `"tangled cable bundle"`.  
+    - If status = "OK": return [].
+
+### Defective object schema
+Each object must include:
+- "image_id": exact image path from input.
+- "label": must be "tangled cable bundle".  
+
+---
+## Example Outputs
+
+### Case 1: Tangled cables detected
+{{
+  "item": "Seiton",
+  "status": "NG",
+  "reason": "Several cable bundles inside the cabinet are tangled and not tied properly, which obstructs maintenance and may cause accidental damage.",
+  "defective_objects": [
+    {{
+      "image_id": "/path/to/cabinet_with_tangled_cables.jpg",
+      "label": "tangled cable bundle"
+    }}
+  ]
+}}
+
+### Case 2: No tangled cables
+{{
+  "item": "Seiton",
+  "status": "OK",
+  "reason": "All cable bundles inside the cabinet are neatly routed and secured, ensuring clear access and safe operation.",
+  "defective_objects": []
+}}
+"""
+    return prompt
+
+def prompt_electric_seiso(list_images):
+    # Display image list with numbering, but REQUIRE that output must use the exact PATH
+    image_list_str = "\n".join([f"- Image no {i+1}: {path}" for i, path in enumerate(list_images, start=1)])
+
+    prompt = f"""You are an **expert electrical safety inspector** specializing in the **6S methodology** for industrial electrical cabinets.  
+Analyze the provided images and **evaluate only under the Seiso (Shine/Cleanliness) condition**.  
+You are given multiple images of electrical cabinets with their file paths:
+
+{image_list_str}
+
+---
+## Inspection criteria (Seiso – Cleanliness)
+- Focus **only on areas with clearly visible and accumulated dust**.  
+- Small, light, or negligible dust should be ignored (do not report as NG).  
+- If significant dust accumulation is found → status = "NG".  
+- If the cabinet looks generally clean or only has minor dust → status = "OK".  
+
+---
+## Output format (JSON rules)
+- Return exactly **1 object** with:
+  - "item": always "Seiso".
+  - "status": "OK" or "NG".
+  - "reason": short explanation (2–3 sentences) describing the evidence in the image, including the area where dust is clearly visible, and its impact.  
+  - "defective_objects": 
+    - If status = "NG": array with one or more objects.  
+    - If status = "OK": return [].
+
+### Defective object schema
+Each object must include:
+- "image_id": exact image path from input.
+- "label": must describe **dust and its location** (e.g., "dust bottom of cabinet", "dust on circuit breaker surfaces", "dust near cooling fan").  
+
+---
+## Example Outputs
+
+### Case 1: Heavy dust detected
+{{
+  "item": "Seiso",
+  "status": "NG",
+  "reason": "Heavy dust is accumulated at the bottom of the cabinet, which reduces cleanliness and may obstruct airflow.",
+  "defective_objects": [
+    {{
+      "image_id": "/path/to/cabinet_with_heavy_dust.jpg",
+      "label": "dust bottom of cabinet"
+    }}
+  ]
+}}
+
+### Case 2: Only light dust
+{{
+  "item": "Seiso",
+  "status": "OK",
+  "reason": "The cabinet is generally clean, with only minor dust that does not affect operation or safety.",
+  "defective_objects": []
+}}
+"""
+    return prompt
+
+def prompt_electric_seiri(list_images):
+    # Display image list with numbering, but REQUIRE that output must use the exact PATH
+    image_list_str = "\n".join([f"- Image no {i+1}: {path}" for i, path in enumerate(list_images, start=1)])
+
+    prompt = f"""You are an **expert electrical safety inspector** specializing in the **6S methodology** for industrial electrical cabinets.  
+Analyze the provided images and evaluate only under the **Seiri (Sort)** condition.  
+You are given multiple images of electrical cabinets with their file paths:
+
+{image_list_str}
+---
+## Inspection criteria (Seiri – Sort)
+- Focus on identifying and removing unnecessary items, equipment, or components inside the cabinet.  
+- Do not consider paper, dust, small debris, or cleanliness-related issues.  
+- Do not consider tangled or excess cables; only evaluate unnecessary components and devices.  
+- Ensure only the necessary number of components and devices are kept; avoid surplus.  
+
+---
+
+## Output format (JSON rules)
+- Return exactly **1 object** with:
+  - "item": always "Seiri".
+  - "status": "OK" or "NG".
+  - "reason": **a concise but detailed explanation (2–4 sentences)**, clearly stating the evidence in the image and its impact on safety/operation.  
+  - "defective_objects": **only when status = "NG"** → an array of objects; otherwise, return [].  
+
+### Defective object schema
+Each object must include:
+- "image_id": exact image path from input.
+- "label": specific name of the unnecessary object (e.g., "water bottle", "pliers",...).  
+
+## Example Outputs
+
+### NG example (unnecessary item found)
+{{
+  "item": "Seiri",
+  "status": "NG",
+  "reason": "A plastic water bottle is placed inside the cabinet next to the wiring. This item is unrelated to operation, can obstruct maintenance, and introduces contamination risk; it should be removed.",
+  "defective_objects": [
+    {{
+      "image_id": "/path/to/cabinet_with_bottle.jpg",
+      "label": "water bottle"
+    }}
+  ]
+}}
+
+### OK example (no unnecessary items)
+{{
+  "item": "Seiri",
+  "status": "OK",
+  "reason": "No unrelated items or surplus parts are visible inside or on the cabinet. The contents appear limited to necessary electrical components only.",
+  "defective_objects": []
+}}
+"""
+    return prompt
+
+def prompt_electric_safety(list_images):
+    # Display image list with numbering, but REQUIRE that output must use the exact PATH
+    image_list_str = "\n".join([f"- Image no {i+1}: {path}" for i, path in enumerate(list_images, start=1)])
+
+    prompt = f"""You are an **expert electrical safety inspector** specializing in the **6S methodology** for industrial electrical cabinets.  
+Analyze the provided images and evaluate only under the **Safety** condition.  
+You are given multiple images of electrical cabinets with their file paths:
+
+{image_list_str}
+
+---
+## Inspection criteria (Safety – Relaxed)
+- Only report **clear and critical safety hazards**.  
+- Minor or cosmetic issues should be ignored (do not mark as NG).  
+- Safety hazards to check include:
+  - Damaged or burned insulation on wires.  
+  - Loose connections or exposed live wires.  
+  - Missing or improperly installed covers, guards, or protective panels.  
+  - Improper grounding/earthing.  
+
+*(Note: Ignore the fact that the cabinet door is open for taking the photo; do not treat it as a hazard.)*  
+
+If none of these clear hazards are found → status = "OK".  
+
+---
+## Output format (JSON rules)
+- Return exactly **1 object** with:
+  - "item": always "Safety".
+  - "status": "OK" or "NG".
+  - "reason": concise explanation (2–3 sentences) describing the evidence and why it is a serious hazard.  
+  - "defective_objects": 
+    - If status = "NG": array with one or more objects.  
+    - If status = "OK": return [].
+
+### Defective object schema
+Each object must include:
+- "image_id": exact image path from input.  
+- "label": one of the key hazards, e.g., "exposed live wire", "loose connection", "damaged insulation", "missing protective cover", "improper grounding".  
+
+---
+## Example Outputs
+
+### Case 1: Critical hazard detected
+{{
+  "item": "Safety",
+  "status": "NG",
+  "reason": "A wire with damaged insulation is visible near the busbar, creating a risk of electric shock and possible short circuit.",
+  "defective_objects": [
+    {{
+      "image_id": "/path/to/cabinet_with_damaged_wire.jpg",
+      "label": "damaged insulation"
+    }}
+  ]
+}}
+
+### Case 2: No critical hazard
+{{
+  "item": "Safety",
+  "status": "OK",
+  "reason": "No serious safety issues detected. All wires are insulated, connections are secure, grounding is correct, and protective covers are in place.",
+  "defective_objects": []
+}}
+"""
+    return prompt
+
+
+def prompt_electric_s4_s5():
+    prompt = """You are an **expert electrical safety inspector** specializing in the **6S methodology** for industrial electrical cabinets.  
+Evaluate the conditions **Seiketsu (Standardize)** and **Shitsuke (Sustain/Discipline)**.  
+
+---
+## Inspection criteria
+- For image-based inspection, Seiketsu and Shitsuke cannot be directly verified visually.  
+- These two principles are more about **maintaining standards** and **discipline in long-term practices**.  
+- Therefore, for visual cabinet checks, both Seiketsu and Shitsuke are always considered **OK**.  
+
+---
+## Output format (JSON rules)
+Return exactly **2 objects** (one for Seiketsu, one for Shitsuke).  
+
+Each object must have:
+- "item": "Seiketsu" or "Shitsuke".  
+- "status": always "OK".  
+- "reason": short explanation (2–3 sentences) why it is considered OK.  
+
+---
+## Example Output
+[
+  {{
+    "item": "Seiketsu",
+    "status": "OK",
+    "reason": "Standardization is ensured because cabinets follow consistent labeling, organization, and inspection practices. This criterion cannot be visually violated in a single image check."
+  }},
+  {{
+    "item": "Shitsuke",
+    "status": "OK",
+    "reason": "Sustain is maintained by continuous training, discipline, and adherence to procedures, which are assumed to be followed. This is always marked as OK in visual inspections."
+  }}
+]
+"""
     return prompt
 
 

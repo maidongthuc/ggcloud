@@ -181,7 +181,7 @@ def fire_extinguisher_cabinet(
         return {
             'status': True,
             'data': response,
-            'message': f'Fire cabinet analysis completed'
+            'message': f'Fire cabinet analysis completed!'
         }
         
     except Exception as e:

@@ -599,16 +599,28 @@ def run_model_clock(images, output_dir, request):
 
 
 def transform_data(data):
+    # Dictionary mapping English item names to Vietnamese names
+    item_name_mapping = {
+        "tray_condition": "Tình trạng khay",
+        "capacity": "Dung tích",
+        "cleanliness": "Độ sạch sẽ",
+        "body": "Thân bình",
+        "handle": "Tay cầm",
+        "safety_pin": "Chốt an toàn",
+        "nozzle": "Vòi phun",
+        "pressure_gauge": "Đồng hồ áp suất"
+    }
+    
     transformed_results = []
     
     for item in data["fire_results"]:
         title = item["title"]
         processed_result = item["processed_result"]
         
-        # Create base structure
+        # Create base structure - đổi 'url' thành 'images'
         transformed_item = {
             "title": title,
-            "url": processed_result.get("url", []),
+            "images": processed_result.get("url", []),  # Đổi từ "url" thành "images"
             "details": []
         }
         
@@ -618,6 +630,7 @@ def transform_data(data):
             if "tray_condition" in processed_result:
                 transformed_item["details"].append({
                     "item": "tray_condition",
+                    "name": item_name_mapping.get("tray_condition", "tray_condition"),
                     "status": processed_result["tray_condition"]["status"],
                     "reason": processed_result["tray_condition"]["reason"]
                 })
@@ -626,17 +639,25 @@ def transform_data(data):
             if "capacity" in processed_result:
                 transformed_item["details"].append({
                     "item": "capacity",
+                    "name": item_name_mapping.get("capacity", "capacity"),
                     "status": processed_result["capacity"]["status"],
                     "reason": processed_result["capacity"]["reason"]
                 })
             
             # Add cleanliness
             if "cleanliness" in processed_result:
-                transformed_item["details"].append({
+                cleanliness_item = {
                     "item": "cleanliness",
+                    "name": item_name_mapping.get("cleanliness", "cleanliness"),
                     "status": processed_result["cleanliness"]["status"],
                     "reason": processed_result["cleanliness"]["reason"]
-                })
+                }
+                
+                # Nếu cleanliness NG, thêm images của item tổng thay vì object
+                if processed_result["cleanliness"]["status"] == "NG":
+                    cleanliness_item["images"] = processed_result.get("url", [])
+                
+                transformed_item["details"].append(cleanliness_item)
         
         # Handle co2_fire_extinguisher and dry_chemical_fire_extinguisher
         elif title in ["co2_fire_extinguisher", "dry_chemical_fire_extinguisher"]:
@@ -646,17 +667,21 @@ def transform_data(data):
                 if component in processed_result:
                     detail_item = {
                         "item": component,
+                        "name": item_name_mapping.get(component, component),
                         "status": processed_result[component]["status"],
                         "reason": processed_result[component]["reason"]
                     }
                     
-                    # Add URL if exists
-                    if "url" in processed_result[component]:
-                        detail_item["url"] = processed_result[component]["url"]
-                    
-                    # Add object array for cleanliness if exists
-                    if component == "cleanliness" and "object" in processed_result[component]:
-                        detail_item["object"] = processed_result[component]["object"]
+                    # Xử lý đặc biệt cho cleanliness
+                    if component == "cleanliness":
+                        if processed_result[component]["status"] == "NG":
+                            # Thêm images của item tổng thay vì object
+                            detail_item["images"] = processed_result.get("url", [])
+                        # Không thêm object nữa
+                    else:
+                        # Add images cho các component khác (không phải cleanliness)
+                        if "url" in processed_result[component]:
+                            detail_item["images"] = processed_result[component]["url"]
                     
                     transformed_item["details"].append(detail_item)
             
@@ -664,20 +689,14 @@ def transform_data(data):
             if title == "dry_chemical_fire_extinguisher" and "clock_results" in data and data["clock_results"]:
                 pressure_gauge_detail = {
                     "item": "pressure_gauge",
+                    "name": item_name_mapping.get("pressure_gauge", "pressure_gauge"),
                     "status": data["clock_results"]["status"],
                     "reason": data["clock_results"]["reason"],
-                    "url": data["clock_results"].get("url", [])
+                    "images": data["clock_results"].get("url", [])  # Đổi từ "url" thành "images"
                 }
                 transformed_item["details"].append(pressure_gauge_detail)
         
-        # Add id if exists
-        if "id" in processed_result:
-            transformed_item["id"] = processed_result["id"]
-        
         transformed_results.append(transformed_item)
-    
-    # Note: Clock results are now integrated into dry_chemical_fire_extinguisher
-    # No separate clock item needed
     
     return transformed_results
 
@@ -723,7 +742,7 @@ def fire_extinguisher(
         return {
             'status': True,
             'data': transformed_data,
-            'message': f'Fire extinguisher analysis completed'
+            'message': f'Fire extinguisher analysis completed!'
         }
         
     except Exception as e:
