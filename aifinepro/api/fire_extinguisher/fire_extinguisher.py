@@ -597,18 +597,34 @@ def run_model_clock(images, output_dir, request):
     result_3 = processing_result_tray_clock(result[0], grouped_results, 'pressure_gauge', request)
     return result_3
 
-
 def transform_data(data):
-    # Dictionary mapping English item names to Vietnamese names
+    # Dictionary mapping English item names to Vietnamese names with product codes
     item_name_mapping = {
-        "tray_condition": "Tình trạng khay",
-        "capacity": "Dung tích",
-        "cleanliness": "Độ sạch sẽ",
-        "body": "Thân bình",
-        "handle": "Tay cầm",
-        "safety_pin": "Chốt an toàn",
-        "nozzle": "Vòi phun",
-        "pressure_gauge": "Đồng hồ áp suất"
+        "co2_fire_extinguisher": {
+            "tray_condition": "Tình trạng khay",
+            "capacity": "Dung tích", 
+            "cleanliness": "Độ sạch sẽ",
+            "body": "Thân bình MT3",
+            "handle": "Cò bóp MT3",
+            "safety_pin": "Chốt an toàn MT3",
+            "nozzle": "Vòi phun MT3",
+            "pressure_gauge": "Đồng hồ áp suất MT3"
+        },
+        "dry_chemical_fire_extinguisher": {
+            "tray_condition": "Tình trạng khay",
+            "capacity": "Dung tích",
+            "cleanliness": "Độ sạch sẽ", 
+            "body": "Thân bình MFZ8",
+            "handle": "Cò bóp MFZ8",
+            "safety_pin": "Chốt an toàn MFZ8",
+            "nozzle": "Vòi phun MFZ8",
+            "pressure_gauge": "Đồng hồ áp suất MFZ8"
+        },
+        "fire_extinguisher_tray": {
+            "tray_condition": "Tình trạng khay",
+            "capacity": "Dung tích",
+            "cleanliness": "Độ sạch sẽ"
+        }
     }
     
     transformed_results = []
@@ -616,6 +632,9 @@ def transform_data(data):
     for item in data["fire_results"]:
         title = item["title"]
         processed_result = item["processed_result"]
+        
+        # Get the appropriate mapping for this title
+        current_mapping = item_name_mapping.get(title, {})
         
         # Create base structure - đổi 'url' thành 'images'
         transformed_item = {
@@ -630,7 +649,7 @@ def transform_data(data):
             if "tray_condition" in processed_result:
                 transformed_item["details"].append({
                     "item": "tray_condition",
-                    "name": item_name_mapping.get("tray_condition", "tray_condition"),
+                    "name": current_mapping.get("tray_condition", "tray_condition"),
                     "status": processed_result["tray_condition"]["status"],
                     "reason": processed_result["tray_condition"]["reason"]
                 })
@@ -639,7 +658,7 @@ def transform_data(data):
             if "capacity" in processed_result:
                 transformed_item["details"].append({
                     "item": "capacity",
-                    "name": item_name_mapping.get("capacity", "capacity"),
+                    "name": current_mapping.get("capacity", "capacity"),
                     "status": processed_result["capacity"]["status"],
                     "reason": processed_result["capacity"]["reason"]
                 })
@@ -648,7 +667,7 @@ def transform_data(data):
             if "cleanliness" in processed_result:
                 cleanliness_item = {
                     "item": "cleanliness",
-                    "name": item_name_mapping.get("cleanliness", "cleanliness"),
+                    "name": current_mapping.get("cleanliness", "cleanliness"),
                     "status": processed_result["cleanliness"]["status"],
                     "reason": processed_result["cleanliness"]["reason"]
                 }
@@ -667,7 +686,7 @@ def transform_data(data):
                 if component in processed_result:
                     detail_item = {
                         "item": component,
-                        "name": item_name_mapping.get(component, component),
+                        "name": current_mapping.get(component, component),
                         "status": processed_result[component]["status"],
                         "reason": processed_result[component]["reason"]
                     }
@@ -689,7 +708,7 @@ def transform_data(data):
             if title == "dry_chemical_fire_extinguisher" and "clock_results" in data and data["clock_results"]:
                 pressure_gauge_detail = {
                     "item": "pressure_gauge",
-                    "name": item_name_mapping.get("pressure_gauge", "pressure_gauge"),
+                    "name": current_mapping.get("pressure_gauge", "pressure_gauge"),
                     "status": data["clock_results"]["status"],
                     "reason": data["clock_results"]["reason"],
                     "images": data["clock_results"].get("url", [])  # Đổi từ "url" thành "images"
@@ -697,7 +716,6 @@ def transform_data(data):
                 transformed_item["details"].append(pressure_gauge_detail)
         
         transformed_results.append(transformed_item)
-    
     return transformed_results
 
 @router.post("/fire_extinguisher/")
