@@ -139,17 +139,130 @@ data2 = {
     "fire_extinguisher": 2
   }
 }
+
 def transform_data(data):
-    # Dictionary mapping English item names to Vietnamese names
+    # Dictionary mapping English item names to multi-language names with product codes
     item_name_mapping = {
-        "tray_condition": "Tình trạng khay",
-        "capacity": "Dung tích",
-        "cleanliness": "Độ sạch sẽ",
-        "body": "Thân bình",
-        "handle": "Tay cầm",
-        "safety_pin": "Chốt an toàn",
-        "nozzle": "Vòi phun",
-        "pressure_gauge": "Đồng hồ áp suất"
+        "co2_fire_extinguisher": {
+            "tray_condition": {
+                "en": "Tray Condition",
+                "vi": "Tình trạng khay",
+                "zh-CN": "托盘状况", 
+                "zh-TW": "托盤狀況"
+            },
+            "capacity": {
+                "en": "Capacity",
+                "vi": "Dung tích",
+                "zh-CN": "容量",
+                "zh-TW": "容量"
+            },
+            "cleanliness": {
+                "en": "Cleanliness",
+                "vi": "Độ sạch sẽ",
+                "zh-CN": "清洁度",
+                "zh-TW": "清潔度"
+            },
+            "body": {
+                "en": "CO2 Fire Extinguisher Body MT3",
+                "vi": "Thân bình MT3",
+                "zh-CN": "MT3 二氧化碳灭火器瓶身",
+                "zh-TW": "MT3 二氧化碳滅火器瓶身"
+            },
+            "handle": {
+                "en": "CO2 Fire Extinguisher Handle MT3",
+                "vi": "Cò bóp MT3",
+                "zh-CN": "MT3 二氧化碳灭火器手柄",
+                "zh-TW": "MT3 二氧化碳滅火器手柄"
+            },
+            "safety_pin": {
+                "en": "CO2 Fire Extinguisher Safety Pin MT3",
+                "vi": "Chốt an toàn MT3",
+                "zh-CN": "MT3 二氧化碳灭火器安全销",
+                "zh-TW": "MT3 二氧化碳滅火器安全銷"
+            },
+            "nozzle": {
+                "en": "CO2 Fire Extinguisher Nozzle MT3",
+                "vi": "Vòi phun MT3",
+                "zh-CN": "MT3 二氧化碳灭火器喷嘴",
+                "zh-TW": "MT3 二氧化碳滅火器噴嘴"
+            },
+            "pressure_gauge": {
+                "en": "CO2 Fire Extinguisher Pressure Gauge MT3",
+                "vi": "Đồng hồ áp suất MT3",
+                "zh-CN": "MT3 二氧化碳灭火器压力表",
+                "zh-TW": "MT3 二氧化碳滅火器壓力表"
+            }
+        },
+        "dry_chemical_fire_extinguisher": {
+            "tray_condition": {
+                "en": "Tray Condition",
+                "vi": "Tình trạng khay",
+                "zh-CN": "托盘状况",
+                "zh-TW": "托盤狀況"
+            },
+            "capacity": {
+                "en": "Capacity",
+                "vi": "Dung tích",
+                "zh-CN": "容量",
+                "zh-TW": "容量"
+            },
+            "cleanliness": {
+                "en": "Cleanliness",
+                "vi": "Độ sạch sẽ",
+                "zh-CN": "清洁度",
+                "zh-TW": "清潔度"
+            },
+            "body": {
+                "en": "Dry Chemical Fire Extinguisher Body MFZ8",
+                "vi": "Thân bình MFZ8",
+                "zh-CN": "MFZ8 干粉灭火器瓶身",
+                "zh-TW": "MFZ8 乾粉滅火器瓶身"
+            },
+            "handle": {
+                "en": "Dry Chemical Fire Extinguisher Handle MFZ8",
+                "vi": "Cò bóp MFZ8",
+                "zh-CN": "MFZ8 干粉灭火器手柄",
+                "zh-TW": "MFZ8 乾粉滅火器手柄"
+            },
+            "safety_pin": {
+                "en": "Dry Chemical Fire Extinguisher Safety Pin MFZ8",
+                "vi": "Chốt an toàn MFZ8",
+                "zh-CN": "MFZ8 干粉灭火器安全销",
+                "zh-TW": "MFZ8 乾粉滅火器安全銷"
+            },
+            "nozzle": {
+                "en": "Dry Chemical Fire Extinguisher Nozzle MFZ8",
+                "vi": "Vòi phun MFZ8",
+                "zh-CN": "MFZ8 干粉灭火器喷嘴",
+                "zh-TW": "MFZ8 乾粉滅火器噴嘴"
+            },
+            "pressure_gauge": {
+                "en": "Dry Chemical Fire Extinguisher Pressure Gauge MFZ8",
+                "vi": "Đồng hồ áp suất MFZ8",
+                "zh-CN": "MFZ8 干粉灭火器压力表",
+                "zh-TW": "MFZ8 乾粉滅火器壓力表"
+            }
+        },
+        "fire_extinguisher_tray": {
+            "tray_condition": {
+                "en": "Tray Condition",
+                "vi": "Tình trạng khay",
+                "zh-CN": "托盘状况",
+                "zh-TW": "托盤狀況"
+            },
+            "capacity": {
+                "en": "Capacity",
+                "vi": "Dung tích",
+                "zh-CN": "容量",
+                "zh-TW": "容量"
+            },
+            "cleanliness": {
+                "en": "Cleanliness",
+                "vi": "Độ sạch sẽ",
+                "zh-CN": "清洁度",
+                "zh-TW": "清潔度"
+            }
+        }
     }
     
     transformed_results = []
@@ -157,6 +270,9 @@ def transform_data(data):
     for item in data["fire_results"]:
         title = item["title"]
         processed_result = item["processed_result"]
+        
+        # Get the appropriate mapping for this title
+        current_mapping = item_name_mapping.get(title, {})
         
         # Create base structure - đổi 'url' thành 'images'
         transformed_item = {
@@ -171,7 +287,12 @@ def transform_data(data):
             if "tray_condition" in processed_result:
                 transformed_item["details"].append({
                     "item": "tray_condition",
-                    "name": item_name_mapping.get("tray_condition", "tray_condition"),
+                    "name": current_mapping.get("tray_condition", {
+                        "en": "tray_condition",
+                        "vi": "tray_condition", 
+                        "zh-CN": "tray_condition",
+                        "zh-TW": "tray_condition"
+                    }),
                     "status": processed_result["tray_condition"]["status"],
                     "reason": processed_result["tray_condition"]["reason"]
                 })
@@ -180,7 +301,12 @@ def transform_data(data):
             if "capacity" in processed_result:
                 transformed_item["details"].append({
                     "item": "capacity",
-                    "name": item_name_mapping.get("capacity", "capacity"),
+                    "name": current_mapping.get("capacity", {
+                        "en": "capacity",
+                        "vi": "capacity",
+                        "zh-CN": "capacity", 
+                        "zh-TW": "capacity"
+                    }),
                     "status": processed_result["capacity"]["status"],
                     "reason": processed_result["capacity"]["reason"]
                 })
@@ -189,7 +315,12 @@ def transform_data(data):
             if "cleanliness" in processed_result:
                 cleanliness_item = {
                     "item": "cleanliness",
-                    "name": item_name_mapping.get("cleanliness", "cleanliness"),
+                    "name": current_mapping.get("cleanliness", {
+                        "en": "cleanliness",
+                        "vi": "cleanliness",
+                        "zh-CN": "cleanliness",
+                        "zh-TW": "cleanliness"
+                    }),
                     "status": processed_result["cleanliness"]["status"],
                     "reason": processed_result["cleanliness"]["reason"]
                 }
@@ -208,7 +339,12 @@ def transform_data(data):
                 if component in processed_result:
                     detail_item = {
                         "item": component,
-                        "name": item_name_mapping.get(component, component),
+                        "name": current_mapping.get(component, {
+                            "en": component,
+                            "vi": component,
+                            "zh-CN": component,
+                            "zh-TW": component
+                        }),
                         "status": processed_result[component]["status"],
                         "reason": processed_result[component]["reason"]
                     }
@@ -230,7 +366,12 @@ def transform_data(data):
             if title == "dry_chemical_fire_extinguisher" and "clock_results" in data and data["clock_results"]:
                 pressure_gauge_detail = {
                     "item": "pressure_gauge",
-                    "name": item_name_mapping.get("pressure_gauge", "pressure_gauge"),
+                    "name": current_mapping.get("pressure_gauge", {
+                        "en": "pressure_gauge",
+                        "vi": "pressure_gauge",
+                        "zh-CN": "pressure_gauge",
+                        "zh-TW": "pressure_gauge"
+                    }),
                     "status": data["clock_results"]["status"],
                     "reason": data["clock_results"]["reason"],
                     "images": data["clock_results"].get("url", [])  # Đổi từ "url" thành "images"

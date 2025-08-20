@@ -22,30 +22,67 @@ router = APIRouter()
 def transform_cabinet_data(data, image_results, list_images, request=None):
     transformed_results = []
     
-    # Vietnamese names mapping
-    vietnamese_names = {
-        "overview": "Tổng quan",
-        "cleanliness": "Vệ sinh",
-        "organization": "Sắp xếp",
-        "fire_hose": "Vòi bạc chữa cháy",
-        "fire_valve": "Van mở chữa cháy", 
-        "fire_nozzle": "Lăng phun chữa cháy",
-        "cabinet_lock": "Chốt khóa tủ"
+    # Multi-language names mapping
+    multilang_names = {
+        "overview": {
+            "en": "Overview",
+            "vi": "Tổng quan",
+            "zh-CN": "总览",
+            "zh-TW": "總覽"
+        },
+        "cleanliness": {
+            "en": "Cleanliness",
+            "vi": "Vệ sinh",
+            "zh-CN": "清洁度",
+            "zh-TW": "清潔度"
+        },
+        "organization": {
+            "en": "Organization",
+            "vi": "Sắp xếp",
+            "zh-CN": "整理",
+            "zh-TW": "整理"
+        },
+        "fire_hose": {
+            "en": "Fire Hose",
+            "vi": "Vòi bạc chữa cháy",
+            "zh-CN": "消防水带",
+            "zh-TW": "消防水帶"
+        },
+        "fire_valve": {
+            "en": "Fire Valve",
+            "vi": "Van mở chữa cháy",
+            "zh-CN": "消防阀门",
+            "zh-TW": "消防閥門"
+        },
+        "fire_nozzle": {
+            "en": "Fire Nozzle",
+            "vi": "Lăng phun chữa cháy",
+            "zh-CN": "消防喷嘴",
+            "zh-TW": "消防噴嘴"
+        },
+        "cabinet_lock": {
+            "en": "Cabinet Lock",
+            "vi": "Chốt khóa tủ",
+            "zh-CN": "柜锁",
+            "zh-TW": "櫃鎖"
+        }
     }
-    
-    # Function to convert paths to URLs
     def paths_to_urls(paths, request):
         if not request:
             return paths
         base_url = f"{request.url.scheme}://{request.url.netloc}"
         return [f"{base_url}/{path}" for path in paths]
-    
     # 1. Handle overview (special case with nested structure)
     if "overview" in data:
         overview_item = {
             "item": "overview",
-            "name": vietnamese_names["overview"],
-            "images": paths_to_urls(list_images, request),  # Convert to URLs
+            "name": multilang_names.get("overview", {
+                "en": "overview",
+                "vi": "overview",
+                "zh-CN": "overview",
+                "zh-TW": "overview"
+            }),
+            "images": paths_to_urls(list_images, request),
             "details": []
         }
         
@@ -54,7 +91,12 @@ def transform_cabinet_data(data, image_results, list_images, request=None):
             if sub_item in data["overview"]:
                 overview_item["details"].append({
                     "item": sub_item,
-                    "name": vietnamese_names[sub_item],
+                    "name": multilang_names.get(sub_item, {
+                        "en": sub_item,
+                        "vi": sub_item,
+                        "zh-CN": sub_item,
+                        "zh-TW": sub_item
+                    }),
                     "status": data["overview"][sub_item]["status"],
                     "reason": data["overview"][sub_item]["reason"]
                 })
@@ -66,11 +108,15 @@ def transform_cabinet_data(data, image_results, list_images, request=None):
     
     for component in components:
         if component in data:
-            component_images = image_results.get(component, [])
             component_item = {
                 "item": component,
-                "name": vietnamese_names[component],
-                "images": paths_to_urls(component_images, request),  # Convert to URLs
+                "name": multilang_names.get(component, {
+                    "en": component,
+                    "vi": component,
+                    "zh-CN": component,
+                    "zh-TW": component
+                }),
+                "images": image_results.get(component, []),  # Get images from image_results
                 "status": data[component]["status"],
                 "reason": data[component]["reason"]
             }
@@ -78,6 +124,7 @@ def transform_cabinet_data(data, image_results, list_images, request=None):
             transformed_results.append(component_item)
     
     return transformed_results
+
 
 
 

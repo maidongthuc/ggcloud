@@ -90,7 +90,10 @@ def prompt_cut_all_fire_extinguisher(image_base64):
 prompt_fire_extinguisher = f'''
 You are an AI inspector for fire extinguishers. When I provide an image about fire extinguishers, focus and analyze the following components:
 
-**Requirement:** All comments and reasons must be answered in English, detailed and complete.
+**Language requirement**
+- All field names and non-reason comments/instructions are in **English**.
+- For every **reason** field, return a **4-language object** with **exact keys**: "en", "vi", "zh-CN", "zh-TW".
+- Return **JSON only** (no extra text before/after).
 
 1. **Body:** Is it OK or NG? Only assess physical condition (e.g., dented, rusty, broken, missing label, etc.), do NOT consider cleanliness.  
 For "reason", provide a detailed and specific description of the physical condition, including the exact location, extent, and type of damage if any.
@@ -112,33 +115,55 @@ For "reason", provide a detailed and specific description of the physical condit
 
 If any part is not clearly visible (too small, blurry, occluded), return the status as NG and explain in detail which part is unclear and why.
 
-```json
 
+```json
 {{
-"body": {{
+  "body": {{
     "status": "OK/NG",
-    "reason": "[Detailed reason based on image, only about physical condition]"
-}},
-"handle": {{
+    "reason": {{
+      "en": "[Detailed reason in English about physical condition only]",
+      "vi": "[Bản dịch Tiếng Việt]",
+      "zh-CN": "[简体中文翻译]",
+      "zh-TW": "[繁體中文翻譯]"
+    }}
+  }},
+  "handle": {{
     "status": "OK/NG",
-    "reason": "[Detailed reason based on image, only about physical condition]"
-}},
-"safety_pin": {{
+    "reason": {{
+      "en": "[Detailed reason in English about physical condition only]",
+      "vi": "[Bản dịch Tiếng Việt]",
+      "zh-CN": "[简体中文翻译]",
+      "zh-TW": "[繁體中文翻譯]"
+    }}
+  }},
+  "safety_pin": {{
     "status": "OK/NG",
-    "reason": "[Detailed reason based on image, only about physical condition]"
-}},
-"nozzle": {{
+    "reason": {{
+      "en": "[Detailed reason in English about physical condition only]",
+      "vi": "[Bản dịch Tiếng Việt]",
+      "zh-CN": "[简体中文翻译]",
+      "zh-TW": "[繁體中文翻譯]"
+    }}
+  }},
+  "nozzle": {{
     "status": "OK/NG",
-    "reason": "[Detailed reason based on image, only about physical condition]"
-}},
-"cleanliness": {{
+    "reason": {{
+      "en": "[Detailed reason in English about physical condition only]",
+      "vi": "[Bản dịch Tiếng Việt]",
+      "zh-CN": "[简体中文翻译]",
+      "zh-TW": "[繁體中文翻譯]"
+    }}
+  }},
+  "cleanliness": {{
     "status": "OK/NG",
-    "reason": "[Describe in detail all dirty/dusty/stained parts, specify type, location, and extent. If clean, state: All parts are clean]",
-    "object": [/* Chỉ liệt kê các bộ phận bị bẩn, ví dụ: ["body", "nozzle"] */]
-}},
-"id": 2
+    "reason": {{
+      "en": "[Detailed multi-part cleanliness summary by component; if clean, 'All parts are clean']",
+      "vi": "[Tóm tắt chi tiết độ sạch theo từng bộ phận; nếu sạch, 'Tất cả các bộ phận đều sạch']",
+      "zh-CN": "[按部件给出清洁度细节；若干净则写：所有部件均干净]",
+      "zh-TW": "[按部件給出清潔度細節；若乾淨則寫：所有部件均乾淨]"
+    }},
+  }}
 }}
-```
 '''
 
 prompt_fire_extinguisher_tray = f'''
@@ -164,14 +189,17 @@ IMPORTANT: You must respond ONLY with valid JSON in this exact format. Do not in
 "cleanliness": {{
     "status": "OK/NG",
     "reason": "[List all locations with dust/dirt/stains, clearly describe the location and type of stain. If clean, state: The tray is clean]"
-}},
-"id": 4
+}}
 }}
 '''
 
 prompt_pressure_gauge = f'''
 You are a fire extinguisher pressure gauge inspection expert. Carefully analyze each provided image and return a JSON object for each image with the following fields:
-**Requirement:** All reasons must be answered in English, detailed and complete.
+
+**Language requirement**
+- For every "reason", return a 4-language object with exact keys: "en", "vi", "zh-CN", "zh-TW".
+- Write the English explanation first, then provide faithful translations for the other languages.
+- Return JSON only (no extra text before/after).
 
 - status: "OK" if the needle is in the green zone, "NG" if in the red/yellow zone or no gauge.
 - url_image: exactly the same image URL from the list below.
@@ -186,63 +214,108 @@ You are a fire extinguisher pressure gauge inspection expert. Carefully analyze 
 ALWAYS return a JSON array, one object per image, in the following format (no explanations, markdown, or code blocks):
 
 [
-{{
+  {{
     "status": "OK/NG",
+    "url_image": "<exact URL from the list>",
     "id": 3,
-    "reason": "<specific reason>"
-}}
+    "reason": {{
+      "en": "<Specific English reason with needle zone/position or why not visible>",
+      "vi": "<Bản dịch tiếng Việt tương ứng>",
+      "zh-CN": "<对应的简体中文说明>",
+      "zh-TW": "<對應的繁體中文說明>"
+    }}
+  }}
 ]
 '''
 
 
 prompt_fire_cabinet = f'''
-You are an AI inspector for fire extinguisher cabinets. When I provide images of a fire extinguisher cabinet, analyze and evaluate the following components:
-**Requirement:** All reasons must be answered in English, detailed and complete. You MUST answer in English.
+prompt_fire_cabinet = f"""
+You are an AI inspector for fire extinguisher cabinets.
 
-1. **Overview (Tổng quan):** Evaluate cleanliness and organization
-   - **Cleanliness:** Is it OK or NG? Check if the cabinet is clean, free from dust, dirt, stains, or debris. Describe specific locations and types of dirt if any.
-   - **Organization:** Is it OK or NG? Check if fire extinguishers and equipment are properly arranged, not tilted, properly positioned, and organized neatly.
+**Language requirement**
+- For every "reason", return a 4-language object with exact keys: "en", "vi", "zh-CN", "zh-TW".
+- Write the English explanation first, then provide accurate translations in Vietnamese, Simplified Chinese, and Traditional Chinese.
+- Return only valid JSON (no markdown, no code blocks, no explanatory text).
 
-2. **Fire hose (Vòi bạc chữa cháy):** Is it OK or NG? Check the physical condition of the fire hose - look for cracks, tears, proper coiling, connection integrity, and overall condition.
+When I provide images of a fire extinguisher cabinet, analyze and evaluate the following components:
 
-3. **Fire valve (Van mở chữa cháy):** Is it OK or NG? Check the fire valve condition - look for proper operation capability, no damage, corrosion, leaks, and accessibility.
+1. **Overview (Tổng quan)**  
+   - **Cleanliness:** Is it OK or NG? Check if the cabinet is clean, free from dust, dirt, stains, or debris. Describe specific locations and types of dirt if any.  
+   - **Organization:** Is it OK or NG? Check if fire extinguishers and equipment are properly arranged, not tilted, properly positioned, and organized neatly.  
 
-4. **Fire nozzle (Lăng phun chữa cháy):** Is it OK or NG? Check the fire nozzle condition - look for physical damage, blockages, proper attachment, and functionality.
+2. **Fire hose (Vòi bạc chữa cháy):** Is it OK or NG? Check the physical condition of the fire hose - cracks, tears, proper coiling, connection integrity, and overall condition.  
 
-5. **Cabinet lock (Chốt khóa tủ):** Is it OK or NG? Check the cabinet lock mechanism - look for proper function, no damage, security, and ease of emergency access.
+3. **Fire valve (Van mở chữa cháy):** Is it OK or NG? Check the fire valve condition - operation capability, no damage, corrosion, leaks, and accessibility.  
 
-If any component is not clearly visible (too small, blurry, occluded), return the status as NG and explain in detail which part is unclear and why.
+4. **Fire nozzle (Lăng phun chữa cháy):** Is it OK or NG? Check the fire nozzle condition - physical damage, blockages, proper attachment, and functionality.  
 
-IMPORTANT: You must respond ONLY with valid JSON in this exact format. Do not include any explanatory text, markdown formatting, or code blocks. Just return the raw JSON object:
+5. **Cabinet lock (Chốt khóa tủ):** Is it OK or NG? Check the cabinet lock mechanism - proper function, no damage, security, and ease of emergency access.  
+
+**Visibility rule**  
+If any component is not clearly visible (too small, blurry, occluded), return status = NG and explain clearly in the "reason" which part is unclear and why.
+
+**Output format (strict JSON, one object only):**
 {{
-"overview": {{
+  "overview": {{
     "cleanliness": {{
-        "status": "OK/NG",
-        "reason": "[Detailed description of cleanliness condition - specific locations of dirt/dust/stains if any, or state clean if no issues]"
+      "status": "OK/NG",
+      "reason": {{
+        "en": "[Detailed cleanliness assessment in English]",
+        "vi": "[Bản dịch tiếng Việt]",
+        "zh-CN": "[简体中文翻译]",
+        "zh-TW": "[繁體中文翻譯]"
+      }}
     }},
     "organization": {{
-        "status": "OK/NG", 
-        "reason": "[Detailed description of how equipment is arranged - proper positioning, alignment, neatness]"
+      "status": "OK/NG",
+      "reason": {{
+        "en": "[Detailed organization assessment in English]",
+        "vi": "[Bản dịch tiếng Việt]",
+        "zh-CN": "[简体中文翻译]",
+        "zh-TW": "[繁體中文翻譯]"
+      }}
     }}
-}},
-"fire_hose": {{
+  }},
+  "fire_hose": {{
     "status": "OK/NG",
-    "reason": "[Detailed assessment of hose condition - physical integrity, coiling, connections, any damage or wear]"
-}},
-"fire_valve": {{
+    "reason": {{
+      "en": "[Detailed hose condition assessment in English]",
+      "vi": "[Bản dịch tiếng Việt]",
+      "zh-CN": "[简体中文翻译]",
+      "zh-TW": "[繁體中文翻譯]"
+    }}
+  }},
+  "fire_valve": {{
     "status": "OK/NG",
-    "reason": "[Detailed assessment of valve condition - operation capability, physical condition, accessibility]"
-}},
-"fire_nozzle": {{
-    "status": "OK/NG", 
-    "reason": "[Detailed assessment of nozzle condition - physical integrity, blockages, attachment, functionality]"
-}},
-"cabinet_lock": {{
+    "reason": {{
+      "en": "[Detailed valve condition assessment in English]",
+      "vi": "[Bản dịch tiếng Việt]",
+      "zh-CN": "[简体中文翻译]",
+      "zh-TW": "[繁體中文翻譯]"
+    }}
+  }},
+  "fire_nozzle": {{
     "status": "OK/NG",
-    "reason": "[Detailed assessment of lock mechanism - functionality, condition, security, emergency access capability]"
-}},
-"id": 5
+    "reason": {{
+      "en": "[Detailed nozzle condition assessment in English]",
+      "vi": "[Bản dịch tiếng Việt]",
+      "zh-CN": "[简体中文翻译]",
+      "zh-TW": "[繁體中文翻譯]"
+    }}
+  }},
+  "cabinet_lock": {{
+    "status": "OK/NG",
+    "reason": {{
+      "en": "[Detailed lock condition assessment in English]",
+      "vi": "[Bản dịch tiếng Việt]",
+      "zh-CN": "[简体中文翻译]",
+      "zh-TW": "[繁體中文翻譯]"
+    }}
+  }}
 }}
+"""
+
 '''
 
 def prompt_electric_6s(list_images):
@@ -460,7 +533,8 @@ You are given multiple images of electrical cabinets with their file paths:
 - Return exactly **1 object** with:
   - "item": always "Seiton".
   - "status": "OK" or "NG".
-  - "reason": short explanation (2–3 sentences) describing the evidence in the image and its impact.  
+  - "reason": must be an object with 4 language keys: "en", "vi", "zh-CN", "zh-TW".  
+    - Each explanation should be concise (2–3 sentences) describing the evidence in the image and its impact.  
   - "defective_objects": 
     - If status = "NG": array with at least one object describing `"tangled cable bundle"`.  
     - If status = "OK": return [].
@@ -477,7 +551,12 @@ Each object must include:
 {{
   "item": "Seiton",
   "status": "NG",
-  "reason": "Several cable bundles inside the cabinet are tangled and not tied properly, which obstructs maintenance and may cause accidental damage.",
+  "reason": {{
+    "en": "Several cable bundles inside the cabinet are tangled and not tied properly, which obstructs maintenance and may cause accidental damage.",
+    "vi": "Nhiều bó dây trong tủ bị rối và không được buộc gọn, gây cản trở việc bảo trì và có thể dẫn đến hư hỏng ngoài ý muốn.",
+    "zh-CN": "机柜内有多组电缆捆绑在一起且未妥善固定，妨碍维护并可能造成意外损坏。",
+    "zh-TW": "機櫃內有多組電纜纏繞在一起且未妥善固定，妨礙維護並可能造成意外損壞。"
+  }},
   "defective_objects": [
     {{
       "image_id": "/path/to/cabinet_with_tangled_cables.jpg",
@@ -490,11 +569,17 @@ Each object must include:
 {{
   "item": "Seiton",
   "status": "OK",
-  "reason": "All cable bundles inside the cabinet are neatly routed and secured, ensuring clear access and safe operation.",
+  "reason": {{
+    "en": "All cable bundles inside the cabinet are neatly routed and secured, ensuring clear access and safe operation.",
+    "vi": "Tất cả các bó dây trong tủ được sắp xếp gọn gàng và cố định chắc chắn, đảm bảo việc tiếp cận dễ dàng và vận hành an toàn.",
+    "zh-CN": "机柜内所有电缆捆绑均布置整齐并牢固固定，确保清晰的通道和安全运行。",
+    "zh-TW": "機櫃內所有電纜捆綁均佈置整齊並牢固固定，確保清晰的通道和安全運行。"
+  }},
   "defective_objects": []
 }}
 """
     return prompt
+
 
 def prompt_electric_seiso(list_images):
     # Display image list with numbering, but REQUIRE that output must use the exact PATH
@@ -518,7 +603,8 @@ You are given multiple images of electrical cabinets with their file paths:
 - Return exactly **1 object** with:
   - "item": always "Seiso".
   - "status": "OK" or "NG".
-  - "reason": short explanation (2–3 sentences) describing the evidence in the image, including the area where dust is clearly visible, and its impact.  
+  - "reason": must be an object with 4 language keys: "en", "vi", "zh-CN", "zh-TW".
+    - Each explanation should be concise (2–3 sentences) describing the evidence in the image, the area where dust is clearly visible, and its impact.
   - "defective_objects": 
     - If status = "NG": array with one or more objects.  
     - If status = "OK": return [].
@@ -535,7 +621,12 @@ Each object must include:
 {{
   "item": "Seiso",
   "status": "NG",
-  "reason": "Heavy dust is accumulated at the bottom of the cabinet, which reduces cleanliness and may obstruct airflow.",
+  "reason": {{
+    "en": "Heavy dust is accumulated at the bottom of the cabinet and along the lower rails. The buildup indicates inadequate cleaning and may impair airflow or deposit on contacts.",
+    "vi": "Bụi dày tích tụ ở đáy tủ và dọc các thanh ray phía dưới. Sự tích tụ này cho thấy việc vệ sinh chưa đạt yêu cầu và có thể cản trở luồng khí hoặc bám lên các tiếp điểm.",
+    "zh-CN": "机柜底部及下方导轨处有明显大量积尘。该堆积表明清洁不到位，可能影响气流或沉积到接触点上。",
+    "zh-TW": "機櫃底部及下方導軌處有明顯大量積塵。此堆積顯示清潔不足，可能影響氣流或沉積於接點。"
+  }},
   "defective_objects": [
     {{
       "image_id": "/path/to/cabinet_with_heavy_dust.jpg",
@@ -548,11 +639,17 @@ Each object must include:
 {{
   "item": "Seiso",
   "status": "OK",
-  "reason": "The cabinet is generally clean, with only minor dust that does not affect operation or safety.",
+  "reason": {{
+    "en": "The cabinet appears generally clean with only light surface dust on non-critical areas. The minor dust does not affect operation or safety.",
+    "vi": "Tủ nhìn chung sạch, chỉ có một lớp bụi mỏng trên các khu vực không quan trọng. Lượng bụi nhỏ này không ảnh hưởng đến vận hành hoặc an toàn.",
+    "zh-CN": "机柜整体较为干净，仅在非关键区域有少量表面灰尘。该轻微积尘不影响运行或安全。",
+    "zh-TW": "機櫃整體乾淨，僅在非關鍵區域有少量表面灰塵。這些輕微積塵不影響運行或安全。"
+  }},
   "defective_objects": []
 }}
 """
     return prompt
+
 
 def prompt_electric_seiri(list_images):
     # Display image list with numbering, but REQUIRE that output must use the exact PATH
@@ -571,26 +668,32 @@ You are given multiple images of electrical cabinets with their file paths:
 - Ensure only the necessary number of components and devices are kept; avoid surplus.  
 
 ---
-
 ## Output format (JSON rules)
 - Return exactly **1 object** with:
   - "item": always "Seiri".
   - "status": "OK" or "NG".
-  - "reason": **a concise but detailed explanation (2–4 sentences)**, clearly stating the evidence in the image and its impact on safety/operation.  
-  - "defective_objects": **only when status = "NG"** → an array of objects; otherwise, return [].  
+  - "reason": must be an object with 4 language keys: "en", "vi", "zh-CN", "zh-TW".  
+    - Each explanation should be concise but detailed (2–4 sentences), clearly stating the evidence in the image and its impact on safety/operation.  
+  - "defective_objects": **only when status = "NG"** → an array of objects; otherwise, return [].
 
 ### Defective object schema
 Each object must include:
 - "image_id": exact image path from input.
-- "label": specific name of the unnecessary object (e.g., "water bottle", "pliers",...).  
+- "label": specific name of the unnecessary object (e.g., "water bottle", "pliers", ...).  
 
+---
 ## Example Outputs
 
 ### NG example (unnecessary item found)
 {{
   "item": "Seiri",
   "status": "NG",
-  "reason": "A plastic water bottle is placed inside the cabinet next to the wiring. This item is unrelated to operation, can obstruct maintenance, and introduces contamination risk; it should be removed.",
+  "reason": {{
+    "en": "A plastic water bottle is placed inside the cabinet next to the wiring. This item is unrelated to operation, can obstruct maintenance, and introduces contamination risk; it should be removed.",
+    "vi": "Một chai nhựa được đặt trong tủ ngay cạnh hệ thống dây điện. Vật này không liên quan đến vận hành, có thể cản trở bảo trì và gây nguy cơ nhiễm bẩn; cần được loại bỏ.",
+    "zh-CN": "在配电柜内靠近电线处放置了一个塑料瓶。该物品与操作无关，可能妨碍维护并带来污染风险，应予以清除。",
+    "zh-TW": "在配電櫃內靠近電線處放置了一個塑膠瓶。此物品與操作無關，可能妨礙維護並帶來污染風險，應予以清除。"
+  }},
   "defective_objects": [
     {{
       "image_id": "/path/to/cabinet_with_bottle.jpg",
@@ -603,11 +706,17 @@ Each object must include:
 {{
   "item": "Seiri",
   "status": "OK",
-  "reason": "No unrelated items or surplus parts are visible inside or on the cabinet. The contents appear limited to necessary electrical components only.",
+  "reason": {{
+    "en": "No unrelated items or surplus parts are visible inside or on the cabinet. The contents appear limited to necessary electrical components only.",
+    "vi": "Không phát hiện vật dụng không liên quan hoặc linh kiện dư thừa bên trong hoặc trên tủ điện. Nội dung trong tủ chỉ bao gồm các thiết bị điện cần thiết.",
+    "zh-CN": "未见柜内或柜上存在无关物品或多余零件。内容仅限于必要的电气元件。",
+    "zh-TW": "未見櫃內或櫃上存在無關物品或多餘零件。內容僅限於必要的電氣元件。"
+  }},
   "defective_objects": []
 }}
 """
     return prompt
+
 
 def prompt_electric_safety(list_images):
     # Display image list with numbering, but REQUIRE that output must use the exact PATH
@@ -638,7 +747,8 @@ If none of these clear hazards are found → status = "OK".
 - Return exactly **1 object** with:
   - "item": always "Safety".
   - "status": "OK" or "NG".
-  - "reason": concise explanation (2–3 sentences) describing the evidence and why it is a serious hazard.  
+  - "reason": must be an object with 4 language keys: "en", "vi", "zh-CN", "zh-TW".  
+    - Each explanation must be concise (2–3 sentences) describing the evidence and why it is (or is not) a serious hazard.  
   - "defective_objects": 
     - If status = "NG": array with one or more objects.  
     - If status = "OK": return [].
@@ -655,7 +765,12 @@ Each object must include:
 {{
   "item": "Safety",
   "status": "NG",
-  "reason": "A wire with damaged insulation is visible near the busbar, creating a risk of electric shock and possible short circuit.",
+  "reason": {{
+    "en": "A wire with damaged insulation is visible near the busbar, creating a risk of electric shock and possible short circuit.",
+    "vi": "Một dây dẫn có lớp cách điện bị hư hỏng xuất hiện gần thanh cái, gây nguy cơ điện giật và có thể dẫn đến chập mạch.",
+    "zh-CN": "母线附近可见一根绝缘损坏的电线，存在触电和可能短路的风险。",
+    "zh-TW": "母線附近可見一條絕緣損壞的電線，存在觸電和可能短路的風險。"
+  }},
   "defective_objects": [
     {{
       "image_id": "/path/to/cabinet_with_damaged_wire.jpg",
@@ -668,11 +783,17 @@ Each object must include:
 {{
   "item": "Safety",
   "status": "OK",
-  "reason": "No serious safety issues detected. All wires are insulated, connections are secure, grounding is correct, and protective covers are in place.",
+  "reason": {{
+    "en": "No serious safety issues detected. All wires are insulated, connections are secure, grounding is correct, and protective covers are in place.",
+    "vi": "Không phát hiện vấn đề an toàn nghiêm trọng. Tất cả dây dẫn đều được cách điện, các mối nối chắc chắn, tiếp địa đúng và tấm che bảo vệ đã lắp đặt đầy đủ.",
+    "zh-CN": "未发现严重的安全问题。所有电线均已绝缘，连接牢固，接地正确，保护盖已安装到位。",
+    "zh-TW": "未發現嚴重的安全問題。所有電線均已絕緣，連接牢固，接地正確，保護蓋已安裝到位。"
+  }},
   "defective_objects": []
 }}
 """
     return prompt
+
 
 
 def prompt_electric_s4_s5():
@@ -723,8 +844,8 @@ I will provide you with:
 - Image(s)
 
 Your task:
-- **Requirement:** All reasons must be answered in English, detailed and complete. You MUST answer in English.
-- Evaluate the equipment based on the criteria and the provided images.
+- **Language requirement:** For every "reason", return a 4-language object with exact keys: "en", "vi", "zh-CN", "zh-TW".
+- Always write the English explanation first, then provide translations in Vietnamese, Simplified Chinese, and Traditional Chinese.
 - Output **ONLY** a valid JSON object (no extra text, no markdown, no code fences).
 
 Inspection location: {inspection_location}
@@ -740,14 +861,20 @@ Return ONLY a JSON object with exactly these keys:
 {{
   "item": "{inspection_location}",
   "status": "OK" or "Not OK",
-  "reason": "[Provide a concise but comprehensive answer in English (2-3 sentences maximum). Focus on key findings and main issues. Reference the standards and describe what is visible in the images clearly and briefly.]"
+  "reason": {{
+    "en": "[Concise but comprehensive explanation in English (2-3 sentences). Reference the standards and describe clearly what is visible in the images.]",
+    "vi": "[Bản dịch Tiếng Việt ngắn gọn, đầy đủ]",
+    "zh-CN": "[简体中文翻译，简明扼要]",
+    "zh-TW": "[繁體中文翻譯，簡明扼要]"
+  }}
 }}
 
 Rules:
 - The "status" must be "OK" or "Not OK".
-- The "reason" must be in English, concise (2-3 sentences), but comprehensive.
-- Focus on the most important findings and main issues only.
-- DO NOT include any image URLs or paths in the reason.
+- Each "reason" must have 2–3 sentences maximum in English, then accurate translations.
+- Focus only on the most important findings and main issues.
+- DO NOT include any image URLs or file paths in the reason.
 - Output ONLY the JSON object. No explanations or additional text.
 """
     return prompt
+

@@ -35,22 +35,62 @@ list_images = ['static/images/raw/FIRE/FIRE_raw_1755048397_0.jpg', 'static/image
 def transform_cabinet_data(data, image_results, list_images):
     transformed_results = []
     
-    # Vietnamese names mapping
-    vietnamese_names = {
-        "overview": "Tổng quan",
-        "cleanliness": "Vệ sinh",
-        "organization": "Sắp xếp",
-        "fire_hose": "Vòi bạc chữa cháy",
-        "fire_valve": "Van mở chữa cháy", 
-        "fire_nozzle": "Lăng phun chữa cháy",
-        "cabinet_lock": "Chốt khóa tủ"
+    # Multi-language names mapping
+    multilang_names = {
+        "overview": {
+            "en": "Overview",
+            "vi": "Tổng quan",
+            "zh-CN": "总览",
+            "zh-TW": "總覽"
+        },
+        "cleanliness": {
+            "en": "Cleanliness",
+            "vi": "Vệ sinh",
+            "zh-CN": "清洁度",
+            "zh-TW": "清潔度"
+        },
+        "organization": {
+            "en": "Organization",
+            "vi": "Sắp xếp",
+            "zh-CN": "整理",
+            "zh-TW": "整理"
+        },
+        "fire_hose": {
+            "en": "Fire Hose",
+            "vi": "Vòi bạc chữa cháy",
+            "zh-CN": "消防水带",
+            "zh-TW": "消防水帶"
+        },
+        "fire_valve": {
+            "en": "Fire Valve",
+            "vi": "Van mở chữa cháy",
+            "zh-CN": "消防阀门",
+            "zh-TW": "消防閥門"
+        },
+        "fire_nozzle": {
+            "en": "Fire Nozzle",
+            "vi": "Lăng phun chữa cháy",
+            "zh-CN": "消防喷嘴",
+            "zh-TW": "消防噴嘴"
+        },
+        "cabinet_lock": {
+            "en": "Cabinet Lock",
+            "vi": "Chốt khóa tủ",
+            "zh-CN": "柜锁",
+            "zh-TW": "櫃鎖"
+        }
     }
     
     # 1. Handle overview (special case with nested structure)
     if "overview" in data:
         overview_item = {
             "item": "overview",
-            "name": vietnamese_names["overview"],
+            "name": multilang_names.get("overview", {
+                "en": "overview",
+                "vi": "overview",
+                "zh-CN": "overview",
+                "zh-TW": "overview"
+            }),
             "images": list_images,
             "details": []
         }
@@ -60,7 +100,12 @@ def transform_cabinet_data(data, image_results, list_images):
             if sub_item in data["overview"]:
                 overview_item["details"].append({
                     "item": sub_item,
-                    "name": vietnamese_names[sub_item],
+                    "name": multilang_names.get(sub_item, {
+                        "en": sub_item,
+                        "vi": sub_item,
+                        "zh-CN": sub_item,
+                        "zh-TW": sub_item
+                    }),
                     "status": data["overview"][sub_item]["status"],
                     "reason": data["overview"][sub_item]["reason"]
                 })
@@ -74,7 +119,12 @@ def transform_cabinet_data(data, image_results, list_images):
         if component in data:
             component_item = {
                 "item": component,
-                "name": vietnamese_names[component],
+                "name": multilang_names.get(component, {
+                    "en": component,
+                    "vi": component,
+                    "zh-CN": component,
+                    "zh-TW": component
+                }),
                 "images": image_results.get(component, []),  # Get images from image_results
                 "status": data[component]["status"],
                 "reason": data[component]["reason"]

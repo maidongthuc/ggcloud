@@ -216,34 +216,82 @@ def processing_s4_s5(list_images, request=None):
             image_url = f"{base_url}/{url}"
             images.append(image_url)
 
-    return   [{
+    return   [
+  {
     "item": "Seiketsu",
     "status": "OK",
-    "reason": "Seiketsu (Săn sóc/Chuẩn hóa) liên quan đến việc thiết lập các thực hành nhất quán về tổ chức, vệ sinh và kiểm soát trực quan trên nhiều hệ thống. Trong hình ảnh, các yếu tố nhìn thấy được có vẻ gọn gàng, tuy nhiên việc tuân thủ các quy trình chuẩn hóa tổng thể không thể được xác minh đầy đủ chỉ từ một bức ảnh, vì vậy giả định là đạt yêu cầu trong lần kiểm tra này.",
-    "images": {"result": images, "raw": {}}
+    "reason": {
+      "en": "Seiketsu (Standardize) refers to establishing consistent practices for organization, cleanliness, and visual control across multiple systems. In the image, the visible elements appear orderly; however, overall compliance with standardized procedures cannot be fully verified from a single photo, so it is assumed acceptable in this inspection.",
+      "vi": "Seiketsu (Săn sóc/Chuẩn hóa) liên quan đến việc thiết lập các thực hành nhất quán về tổ chức, vệ sinh và kiểm soát trực quan trên nhiều hệ thống. Trong hình ảnh, các yếu tố nhìn thấy được có vẻ gọn gàng; tuy nhiên việc tuân thủ các quy trình chuẩn hóa tổng thể không thể được xác minh đầy đủ chỉ từ một bức ảnh, vì vậy giả định là đạt yêu cầu trong lần kiểm tra này.",
+      "zh-CN": "Seiketsu（清洁/标准化）是指在多个系统中建立一致的组织、清洁和目视化管理实践。在图像中，可见的部分看起来整齐，但整体的标准化程序无法仅凭一张照片完全确认，因此在本次检查中假定为合格。",
+      "zh-TW": "Seiketsu（清潔/標準化）是指在多個系統中建立一致的組織、清潔和目視化管理實踐。在圖像中，可見的部分看起來整齊，但整體的標準化程序無法僅憑一張照片完全確認，因此在本次檢查中假定為合格。"
+    },
+    "images": { "result": "images", "raw": {} }
   },
   {
     "item": "Shitsuke",
     "status": "OK",
-    "reason": "Shitsuke (Sẵn sàng/Kỷ luật) liên quan đến cam kết lâu dài, đào tạo liên tục và việc tuân thủ các nguyên tắc 6S của nhân sự. Khía cạnh duy trì tiêu chuẩn theo thời gian này mang tính hành vi và quy trình, nên không thể đánh giá trực tiếp từ một hình ảnh tĩnh. Do đó, nó được coi là OK trong lần kiểm tra bằng hình ảnh này.",
-    "images": {"result": images, "raw": {}}
-  }]
+    "reason": {
+      "en": "Shitsuke (Sustain/Discipline) relates to long-term commitment, continuous training, and adherence to the 6S principles by personnel. The aspect of maintaining standards over time is behavioral and procedural, which cannot be directly assessed from a single static image. Therefore, it is considered OK in this image-based inspection.",
+      "vi": "Shitsuke (Sẵn sàng/Kỷ luật) liên quan đến cam kết lâu dài, đào tạo liên tục và việc tuân thủ các nguyên tắc 6S của nhân sự. Khía cạnh duy trì tiêu chuẩn theo thời gian này mang tính hành vi và quy trình, nên không thể đánh giá trực tiếp từ một hình ảnh tĩnh. Do đó, nó được coi là OK trong lần kiểm tra bằng hình ảnh này.",
+      "zh-CN": "Shitsuke（素养/纪律）涉及人员对6S原则的长期承诺、持续培训和遵守。保持标准的方面是行为和过程性的，无法仅凭一张静态图像直接评估。因此，在此次基于图像的检查中被视为合格。",
+      "zh-TW": "Shitsuke（素養/紀律）涉及人員對6S原則的長期承諾、持續培訓和遵守。保持標準的方面是行為和過程性的，無法僅憑一張靜態圖像直接評估。因此，在此次基於圖像的檢查中被視為合格。"
+    },
+    "images": { "result": "images", "raw": {} }
+  }
+]
+
 def add_vietnamese_names(data):
-    # Dictionary mapping 6S items to Vietnamese names
+    # Dictionary mapping 6S items to multi-language names
     item_name_mapping = {
-        "Seiri": "Sàng lọc",
-        "Seiton": "Sắp xếp", 
-        "Seiso": "Sạch sẽ",
-        "Seiketsu": "Săn sóc",
-        "Shitsuke": "Sẵn sàng",
-        "Safety": "An toàn"
+        "Seiri": {
+            "en": "Sort",
+            "vi": "Sàng lọc",
+            "zh-CN": "整理",
+            "zh-TW": "整理"
+        },
+        "Seiton": {
+            "en": "Set in Order",
+            "vi": "Sắp xếp",
+            "zh-CN": "整顿",
+            "zh-TW": "整頓"
+        },
+        "Seiso": {
+            "en": "Shine",
+            "vi": "Sạch sẽ",
+            "zh-CN": "清扫",
+            "zh-TW": "清掃"
+        },
+        "Seiketsu": {
+            "en": "Standardize",
+            "vi": "Săn sóc",
+            "zh-CN": "清洁",
+            "zh-TW": "清潔"
+        },
+        "Shitsuke": {
+            "en": "Sustain",
+            "vi": "Sẵn sàng",
+            "zh-CN": "素养",
+            "zh-TW": "素養"
+        },
+        "Safety": {
+            "en": "Safety",
+            "vi": "An toàn",
+            "zh-CN": "安全",
+            "zh-TW": "安全"
+        }
     }
     
     # Add name field to each item
     for item in data:
         if "item" in item:
             item_key = item["item"]
-            item["name"] = item_name_mapping.get(item_key, item_key)
+            item["name"] = item_name_mapping.get(item_key, {
+                "en": item_key,
+                "vi": item_key,
+                "zh-CN": item_key,
+                "zh-TW": item_key
+            })
     
     return data
 
